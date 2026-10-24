@@ -36,12 +36,18 @@ export default function Admin() {
 
   const say = (text, bad = false) => setMsg({ text, bad });
   const load = useCallback(async () => {
-    const [c, i, s] = await Promise.all([
-      supabase.from('categories').select('*').order('sort').order('id'),
-      supabase.from('items').select('*').order('sort').order('id'),
-      supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
-    ]);
-    setCats(c.data || []); setItems(i.data || []); setSt(s.data || {});
+    try {
+      const [c, i, s] = await Promise.all([
+        supabase.from('categories').select('*').order('sort').order('id'),
+        supabase.from('items').select('*').order('sort').order('id'),
+        supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
+      ]);
+      if (c.error) say('Categories: ' + c.error.message, true);
+      if (i.error) say('Dishes: ' + i.error.message, true);
+      setCats(c.data || []); setItems(i.data || []); setSt(s.data || {});
+    } catch (err) {
+      say('Failed to connect to database. Please check Supabase credentials.', true);
+    }
   }, []);
 
   useEffect(() => {

@@ -4,8 +4,8 @@ import { supabase } from '../lib/supabase';
 import { TAGS } from '../lib/tags';
 
 const TEXT = {
-  en: { search: 'Search the menu', all: 'All', sold: 'Sold out', empty: 'No dishes match your search.', fail: 'The menu could not load. Please ask the staff.', table: 'Table', close: 'Close', cur: 'ETB', special: "Today's special", hours: 'Opening hours', find: 'Find us', tagline: 'Fresh food, made with care' },
-  am: { search: 'ምናሌውን ይፈልጉ', all: 'ሁሉም', sold: 'አልቋል', empty: 'ምንም ምግብ አልተገኘም።', fail: 'ምናሌው አልተከፈተም። እባክዎ ሰራተኞችን ይጠይቁ።', table: 'ጠረጴዛ', close: 'ዝጋ', cur: 'ብር', special: 'የዛሬ ልዩ', hours: 'የስራ ሰዓት', find: 'አድራሻ', tagline: 'በጥንቃቄ የተዘጋጀ ትኩስ ምግብ' },
+  en: { search: 'Search the menu', all: 'All', sold: 'Sold out', loading: 'Loading menu...', empty: 'No dishes match your search.', fail: 'The menu could not load. Please ask the staff.', table: 'Table', close: 'Close', cur: 'ETB', special: "Today's special", hours: 'Opening hours', find: 'Find us', tagline: 'Fresh food, made with care' },
+  am: { search: 'ምናሌውን ይፈልጉ', all: 'ሁሉም', sold: 'አልቋል', loading: 'ምናሌው በመጫን ላይ ነው...', empty: 'ምንም ምግብ አልተገኘም።', fail: 'ምናሌው አልተከፈተም። እባክዎ ሰራተኞችን ይጠይቁ።', table: 'ጠረጴዛ', close: 'ዝጋ', cur: 'ብር', special: 'የዛሬ ልዩ', hours: 'የስራ ሰዓት', find: 'አድራሻ', tagline: 'በጥንቃቄ የተዘጋጀ ትኩስ ምግብ' },
 };
 
 export default function Menu() {
@@ -27,13 +27,17 @@ export default function Menu() {
     const th = localStorage.getItem('theme') || 'dark';
     setTheme(th); document.documentElement.dataset.theme = th;
     (async () => {
-      const [c, i, s] = await Promise.all([
-        supabase.from('categories').select('*').order('sort').order('id'),
-        supabase.from('items').select('*').order('sort').order('id'),
-        supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
-      ]);
-      if (c.error || i.error) return setState('error');
-      setCats(c.data); setItems(i.data); setSt(s.data || {}); setState('ok');
+      try {
+        const [c, i, s] = await Promise.all([
+          supabase.from('categories').select('*').order('sort').order('id'),
+          supabase.from('items').select('*').order('sort').order('id'),
+          supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
+        ]);
+        if (c.error || i.error) return setState('error');
+        setCats(c.data || []); setItems(i.data || []); setSt(s.data || {}); setState('ok');
+      } catch {
+        setState('error');
+      }
     })();
   }, []);
 
@@ -82,6 +86,7 @@ export default function Menu() {
         <button className={'tab' + (!cat ? ' on' : '')} onClick={() => setCat(0)}>{L.all}</button>
         {cats.map((c) => <button key={c.id} className={'tab' + (cat === c.id ? ' on' : '')} onClick={() => setCat(c.id)}>{t(c, 'name')}</button>)}
       </div>
+      {state === 'loading' && <div className="empty">{L.loading}</div>}
       {state === 'error' && <div className="empty">{L.fail}</div>}
       {state === 'ok' && !groups.length && <div className="empty">{L.empty}</div>}
       {specials.length > 0 && <section><h2>{L.special}</h2>{specials.map((i) => <Card key={'s' + i.id} i={i} hl />)}</section>}
