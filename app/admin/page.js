@@ -259,6 +259,8 @@ alter table settings add column if not exists telebirr_number text;
 alter table settings add column if not exists cbe_name text;
 alter table settings add column if not exists cbe_number text;
 alter table settings add column if not exists payment_instructions text;
+alter table settings add column if not exists cashier_pin text default '1234';
+alter table settings add column if not exists kitchen_pin text default '1234';
 
 insert into storage.buckets (id, name, public) values ('receipts', 'receipts', true) on conflict (id) do nothing;
 create policy "public read receipts" on storage.objects for select using (bucket_id = 'receipts');
@@ -566,6 +568,29 @@ create policy "public update receipts" on storage.objects for update using (buck
             value={st.cbe_number || ''}
             onChange={(e) => setSt({ ...st, cbe_number: e.target.value })}
           />
+        </div>
+
+        <h3 style={{ fontSize: '1.1rem', color: 'var(--g)', margin: '14px 0 6px' }}>
+          🔒 Staff Access PINs (Hidden from Customers)
+        </h3>
+        <p className="sm">Set the security PIN required to open the Cashier Desk and Kitchen screens.</p>
+        <div className="row">
+          <div>
+            <label style={{ fontSize: '.85rem' }}>Cashier Station PIN:</label>
+            <input
+              placeholder="Default: 1234"
+              value={st.cashier_pin || ''}
+              onChange={(e) => setSt({ ...st, cashier_pin: e.target.value })}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '.85rem' }}>Kitchen KDS PIN:</label>
+            <input
+              placeholder="Default: 1234"
+              value={st.kitchen_pin || ''}
+              onChange={(e) => setSt({ ...st, kitchen_pin: e.target.value })}
+            />
+          </div>
         </div>
 
         <h3 style={{ fontSize: '1.1rem', margin: '14px 0 6px' }}>General Information</h3>

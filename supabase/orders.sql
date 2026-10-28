@@ -38,6 +38,8 @@ alter table settings add column if not exists telebirr_number text;
 alter table settings add column if not exists cbe_name text;
 alter table settings add column if not exists cbe_number text;
 alter table settings add column if not exists payment_instructions text;
+alter table settings add column if not exists cashier_pin text default '1234';
+alter table settings add column if not exists kitchen_pin text default '1234';
 
 -- Storage bucket for customer payment receipts / transaction screenshots
 insert into storage.buckets (id, name, public) values ('receipts', 'receipts', true) on conflict (id) do nothing;

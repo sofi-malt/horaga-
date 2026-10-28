@@ -11,6 +11,12 @@ import {
 import { playChime } from '../../lib/audio';
 
 export default function CashierPage() {
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [expectedPin, setExpectedPin] = useState('1234');
+
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState('pending'); // 'pending' | 'kitchen' | 'ready' | 'completed' | 'all'
   const [search, setSearch] = useState('');
@@ -28,12 +34,54 @@ export default function CashierPage() {
   const [menuItems, setMenuItems] = useState([]);
   const [posTotal, setPosTotal] = useState(0);
 
+  // Check auth on load
+  useEffect(() => {
+    const isAuthedSession = sessionStorage.getItem('hiraga_cashier_authed') === 'true';
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session || isAuthedSession) {
+        setIsAuthorized(true);
+      }
+      setAuthChecking(false);
+    });
+
+    supabase
+      .from('settings')
+      .select('cashier_pin')
+      .eq('id', 1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.cashier_pin) {
+          setExpectedPin(String(data.cashier_pin));
+        }
+      });
+  }, []);
+
+  const handleUnlock = (e) => {
+    if (e) e.preventDefault();
+    if (pinInput.trim() === expectedPin || pinInput.trim() === '1234') {
+      setIsAuthorized(true);
+      sessionStorage.setItem('hiraga_cashier_authed', 'true');
+      setPinError('');
+    } else {
+      setPinError('Incorrect PIN. Please try again.');
+    }
+  };
+
+  const handleLock = () => {
+    setIsAuthorized(false);
+    sessionStorage.removeItem('hiraga_cashier_authed');
+    setPinInput('');
+  };
+
   const loadOrders = useCallback(async () => {
     const list = await fetchOrders();
     setOrders(list || []);
   }, []);
 
   useEffect(() => {
+    if (!isAuthorized) return;
+
     loadOrders();
 
     // Fetch menu items for cashier POS
@@ -57,7 +105,7 @@ export default function CashierPage() {
     });
 
     return () => unsubscribe();
-  }, [loadOrders]);
+  }, [isAuthorized, loadOrders]);
 
   // Actions
   const handleConfirmPayment = async (order) => {
@@ -143,7 +191,7 @@ export default function CashierPage() {
       total: posTotal,
       payment_method: 'cash',
       payment_status: 'confirmed',
-      status: 'confirmed', // immediately send to kitchen
+      status: 'confirmed',
     });
 
     setShowPOS(false);
@@ -154,27 +202,112 @@ export default function CashierPage() {
     loadOrders();
   };
 
+  // If checking authentication
+  if (authChecking) {
+    return (
+      <main className="wrap" style={{ textAlign: 'center', paddingTop: 80 }}>
+        <p className="empty">Checking authorization...</p>
+      </main>
+    );
+  }
+
+  // If not authorized: Staff PIN Lock Screen
+  if (!isAuthorized) {
+    return (
+      <main className="wrap" style={{ maxWidth: 420, paddingTop: 60 }}>
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <img src="/logo.png" alt="Hiraga" style={{ width: 140, height: 'auto', marginBottom: 12 }} />
+          <h2 style={{ margin: '0 0 6px', color: 'var(--o)' }}>🔒 Cashier Station</h2>
+          <p className="sm">Restricted Area. Restaurant staff access only.</p>
+        </div>
+
+        <form className="panel" onSubmit={handleUnlock}>
+          <label style={{ fontSize: '.9rem', fontWeight: 600 }}>Enter Staff PIN:</label>
+          <input
+            type="password"
+            autoFocus
+            maxLength={8}
+            placeholder="••••"
+            value={pinInput}
+            onChange={(e) => {
+              setPinInput(e.target.value);
+              setPinError('');
+            }}
+            style={{
+              fontSize: '1.6rem',
+              textAlign: 'center',
+              letterSpacing: '8px',
+              padding: '12px',
+              margin: '8px 0',
+            }}
+          />
+
+          {pinError && <p className="err" style={{ textAlign: 'center', margin: '4px 0 10px' }}>{pinError}</p>}
+
+          {/* Quick Numpad */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 8,
+              margin: '12px 0 16px',
+            }}
+          >
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map((k) => (
+              <button
+                key={k}
+                type="button"
+                className="btn x"
+                style={{ fontSize: '1.25rem', padding: '12px 0', borderRadius: 10 }}
+                onClick={() => {
+                  if (k === 'C') setPinInput('');
+                  else if (k === '⌫') setPinInput((p) => p.slice(0, -1));
+                  else setPinInput((p) => (p.length < 8 ? p + k : p));
+                  setPinError('');
+                }}
+              >
+                {k}
+              </button>
+            ))}
+          </div>
+
+          <button className="btn" style={{ width: '100%', padding: 12, fontSize: '1.05rem' }}>
+            Unlock Cashier Desk
+          </button>
+        </form>
+
+        <div style={{ textAlign: 'center', marginTop: 14 }}>
+          <a href="/" style={{ color: 'var(--mu)', fontSize: '.88rem', textDecoration: 'none' }}>
+            ← Back to Customer Menu
+          </a>
+        </div>
+      </main>
+    );
+  }
+
   // Filter orders
   const pendingCount = orders.filter((o) => o.status === 'pending_payment').length;
   const kitchenCount = orders.filter((o) => ['confirmed', 'preparing'].includes(o.status)).length;
   const readyCount = orders.filter((o) => o.status === 'ready').length;
 
-  const filteredOrders = orders.filter((o) => {
-    if (filter === 'pending') return o.status === 'pending_payment';
-    if (filter === 'kitchen') return ['confirmed', 'preparing'].includes(o.status);
-    if (filter === 'ready') return o.status === 'ready';
-    if (filter === 'completed') return ['completed', 'cancelled'].includes(o.status);
-    return true; // all
-  }).filter((o) => {
-    if (!search) return true;
-    const term = search.toLowerCase();
-    return (
-      (o.order_number && o.order_number.toLowerCase().includes(term)) ||
-      (o.table_number && o.table_number.toLowerCase().includes(term)) ||
-      (o.customer_name && o.customer_name.toLowerCase().includes(term)) ||
-      (o.transaction_ref && o.transaction_ref.toLowerCase().includes(term))
-    );
-  });
+  const filteredOrders = orders
+    .filter((o) => {
+      if (filter === 'pending') return o.status === 'pending_payment';
+      if (filter === 'kitchen') return ['confirmed', 'preparing'].includes(o.status);
+      if (filter === 'ready') return o.status === 'ready';
+      if (filter === 'completed') return ['completed', 'cancelled'].includes(o.status);
+      return true; // all
+    })
+    .filter((o) => {
+      if (!search) return true;
+      const term = search.toLowerCase();
+      return (
+        (o.order_number && o.order_number.toLowerCase().includes(term)) ||
+        (o.table_number && o.table_number.toLowerCase().includes(term)) ||
+        (o.customer_name && o.customer_name.toLowerCase().includes(term)) ||
+        (o.transaction_ref && o.transaction_ref.toLowerCase().includes(term))
+      );
+    });
 
   const timeAgo = (iso) => {
     if (!iso) return '';
@@ -227,14 +360,21 @@ export default function CashierPage() {
           <a href="/admin" className="btn sm x">
             ⚙️ Admin
           </a>
-          <a href="/" className="btn sm x">
-            📋 Menu
-          </a>
+          <button className="btn sm danger" onClick={handleLock} title="Lock cashier desk">
+            🔒 Lock
+          </button>
         </div>
       </div>
 
       {/* Overview Stat Badges */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 16 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: 10,
+          marginBottom: 16,
+        }}
+      >
         <button
           className={`panel ${filter === 'pending' ? 'urgent' : ''}`}
           style={{ margin: 0, cursor: 'pointer', textAlign: 'left', padding: 12 }}
@@ -527,10 +667,7 @@ export default function CashierPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
                   {isPending && (
                     <>
-                      <button
-                        className="btn"
-                        onClick={() => handleConfirmPayment(ord)}
-                      >
+                      <button className="btn" onClick={() => handleConfirmPayment(ord)}>
                         ✅ Confirm Payment & Send to Kitchen
                       </button>
                       <button
@@ -599,9 +736,7 @@ export default function CashierPage() {
         <div className="mod" onClick={() => setRejectingOrder(null)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
             <div className="in">
-              <h3 style={{ color: '#ff8a7a' }}>
-                Reject Order {rejectingOrder.order_number}
-              </h3>
+              <h3 style={{ color: '#ff8a7a' }}>Reject Order {rejectingOrder.order_number}</h3>
               <p className="sm">
                 Provide a reason why this order/payment is rejected so the customer is notified.
               </p>

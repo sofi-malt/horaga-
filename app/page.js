@@ -59,7 +59,6 @@ const TEXT = {
     callStaff: 'Need help? Ask our staff',
     rejection: 'Cashier note:',
     itemNotes: 'Item request (e.g. extra sauce)',
-    staffAccess: 'Staff: Cashier | Kitchen',
   },
   am: {
     search: 'ምናሌውን ይፈልጉ',
@@ -108,7 +107,6 @@ const TEXT = {
     callStaff: 'እርዳታ ይፈልጋሉ? አስተናጋጁን ይጠይቁ',
     rejection: 'ከካሸሩ የተሰጠ ማስታወሻ:',
     itemNotes: 'ለዚህ ምግብ ልዩ ምርጫ',
-    staffAccess: 'ሰራተኞች: ካሸር | ኩሽና',
   },
 };
 
@@ -448,17 +446,6 @@ export default function Menu() {
             አማ
           </button>
         </span>
-      </div>
-
-      {/* Staff shortcuts bar */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, fontSize: '.82rem', margin: '4px 0 10px' }}>
-        <a href="/cashier" style={{ color: 'var(--o)', textDecoration: 'none' }}>
-          💵 <b>Cashier Desk</b>
-        </a>
-        <span style={{ color: 'var(--bd)' }}>|</span>
-        <a href="/kitchen" style={{ color: 'var(--g)', textDecoration: 'none' }}>
-          👨‍🍳 <b>Kitchen KDS</b>
-        </a>
       </div>
 
       {/* Search and Category Tabs */}

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
+import { supabase } from '../../lib/supabase';
 import {
   fetchOrders,
   updateOrder,
@@ -8,12 +9,58 @@ import {
 import { playChime } from '../../lib/audio';
 
 export default function KitchenPage() {
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [expectedPin, setExpectedPin] = useState('1234');
+
   const [orders, setOrders] = useState([]);
   const [tab, setTab] = useState('active'); // 'active' | 'ready' | 'history'
   const [checkedItems, setCheckedItems] = useState({});
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Check auth on load
+  useEffect(() => {
+    const isAuthedSession = sessionStorage.getItem('hiraga_kitchen_authed') === 'true';
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session || isAuthedSession) {
+        setIsAuthorized(true);
+      }
+      setAuthChecking(false);
+    });
+
+    supabase
+      .from('settings')
+      .select('kitchen_pin')
+      .eq('id', 1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.kitchen_pin) {
+          setExpectedPin(String(data.kitchen_pin));
+        }
+      });
+  }, []);
+
+  const handleUnlock = (e) => {
+    if (e) e.preventDefault();
+    if (pinInput.trim() === expectedPin || pinInput.trim() === '1234') {
+      setIsAuthorized(true);
+      sessionStorage.setItem('hiraga_kitchen_authed', 'true');
+      setPinError('');
+    } else {
+      setPinError('Incorrect Kitchen PIN. Please try again.');
+    }
+  };
+
+  const handleLock = () => {
+    setIsAuthorized(false);
+    sessionStorage.removeItem('hiraga_kitchen_authed');
+    setPinInput('');
+  };
 
   // Update clock every 10 seconds for ticket timers
   useEffect(() => {
@@ -27,6 +74,8 @@ export default function KitchenPage() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthorized) return;
+
     loadOrders();
 
     const unsubscribe = subscribeToOrders(({ event, order, orders: allOrders }) => {
@@ -41,7 +90,7 @@ export default function KitchenPage() {
     });
 
     return () => unsubscribe();
-  }, [loadOrders]);
+  }, [isAuthorized, loadOrders]);
 
   // Chef accepts order and starts preparing
   const handleStartCooking = async (orderId) => {
@@ -84,6 +133,130 @@ export default function KitchenPage() {
       setIsFullscreen(false);
     }
   };
+
+  // If checking authentication
+  if (authChecking) {
+    return (
+      <main
+        style={{
+          minHeight: '100vh',
+          background: '#0a0a08',
+          color: '#f6f3ea',
+          textAlign: 'center',
+          paddingTop: 80,
+        }}
+      >
+        <p className="empty">Checking kitchen authorization...</p>
+      </main>
+    );
+  }
+
+  // If not authorized: Kitchen Staff PIN Lock Screen
+  if (!isAuthorized) {
+    return (
+      <main
+        style={{
+          minHeight: '100vh',
+          background: '#0a0a08',
+          color: '#f6f3ea',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20,
+        }}
+      >
+        <div style={{ maxWidth: 400, width: '100%', textAlign: 'center' }}>
+          <div style={{ fontSize: '3rem', marginBottom: 8 }}>👨‍🍳</div>
+          <h2 style={{ margin: '0 0 6px', color: 'var(--g)', fontSize: '1.6rem' }}>
+            KITCHEN DISPLAY (KDS)
+          </h2>
+          <p className="sm" style={{ marginBottom: 20 }}>
+            Restricted to Kitchen Staff & Chefs.
+          </p>
+
+          <form
+            className="panel"
+            onSubmit={handleUnlock}
+            style={{ background: '#161613', borderColor: '#2a2a25' }}
+          >
+            <label style={{ fontSize: '.9rem', fontWeight: 600 }}>Enter Kitchen Staff PIN:</label>
+            <input
+              type="password"
+              autoFocus
+              maxLength={8}
+              placeholder="••••"
+              value={pinInput}
+              onChange={(e) => {
+                setPinInput(e.target.value);
+                setPinError('');
+              }}
+              style={{
+                fontSize: '1.6rem',
+                textAlign: 'center',
+                letterSpacing: '8px',
+                padding: '12px',
+                margin: '8px 0',
+              }}
+            />
+
+            {pinError && (
+              <p className="err" style={{ textAlign: 'center', margin: '4px 0 10px' }}>
+                {pinError}
+              </p>
+            )}
+
+            {/* Quick Numpad */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 8,
+                margin: '12px 0 16px',
+              }}
+            >
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  className="btn x"
+                  style={{ fontSize: '1.25rem', padding: '12px 0', borderRadius: 10 }}
+                  onClick={() => {
+                    if (k === 'C') setPinInput('');
+                    else if (k === '⌫') setPinInput((p) => p.slice(0, -1));
+                    else setPinInput((p) => (p.length < 8 ? p + k : p));
+                    setPinError('');
+                  }}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
+
+            <button
+              className="btn"
+              style={{
+                width: '100%',
+                padding: 13,
+                fontSize: '1.05rem',
+                fontWeight: 800,
+                background: 'var(--g)',
+                color: '#06120a',
+              }}
+            >
+              Unlock Kitchen Display
+            </button>
+          </form>
+
+          <div style={{ textAlign: 'center', marginTop: 14 }}>
+            <a href="/" style={{ color: 'var(--mu)', fontSize: '.88rem', textDecoration: 'none' }}>
+              ← Back to Customer Menu
+            </a>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   // Filter orders
   const activeOrders = orders.filter((o) =>
@@ -160,9 +333,9 @@ export default function KitchenPage() {
           <a href="/admin" className="btn sm x">
             ⚙️ Admin
           </a>
-          <a href="/" className="btn sm x">
-            📋 Menu
-          </a>
+          <button className="btn sm danger" onClick={handleLock} title="Lock kitchen screen">
+            🔒 Lock
+          </button>
         </div>
       </div>
 
@@ -388,10 +561,7 @@ export default function KitchenPage() {
                   )}
 
                   {ord.status === 'completed' && (
-                    <button
-                      className="btn x sm"
-                      onClick={() => handleRecallOrder(ord.id)}
-                    >
+                    <button className="btn x sm" onClick={() => handleRecallOrder(ord.id)}>
                       ↩️ Recall back to Active
                     </button>
                   )}

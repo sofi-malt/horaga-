@@ -46,7 +46,8 @@ create table if not exists settings (
   tagline text, tagline_am text, phone text, address text, hours text,
   map_url text, instagram text, facebook text, telegram text,
   telebirr_name text, telebirr_number text,
-  cbe_name text, cbe_number text, payment_instructions text
+  cbe_name text, cbe_number text, payment_instructions text,
+  cashier_pin text default '1234', kitchen_pin text default '1234'
 );
 insert into settings (id) values (1) on conflict do nothing;
 alter table settings enable row level security;
