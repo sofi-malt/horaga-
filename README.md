@@ -1,65 +1,114 @@
-# Hiraga Restaurant Digital Menu
+# Hiraga Restaurant Digital Hotel & Kitchen System
 
-Customers scan a QR code and see the menu. The restaurant admin signs in at `/admin` to manage dishes, categories, pictures, prices and availability. English and Amharic are supported.
+A complete end-to-end digital restaurant management platform:
+1. **Customer Digital Ordering & Live Tracking** (`/`): Browse categories, search, customize dishes with cooking notes, add to cart, and checkout with table number. Pay by Cash or digital transfer (Telebirr / CBE / Bank) with transaction code/link and receipt screenshot upload. Live step-by-step order tracker with real-time updates.
+2. **Cashier Desk & POS** (`/cashier`): Audio alerts for incoming orders, pending payment proof verification (preview transaction links & zoomable screenshot lightbox), 1-click confirmation to kitchen, rejection with reasons, thermal receipt/bill printing, and walk-in order POS creation.
+3. **Kitchen Display System - KDS** (`/kitchen`): Built for kitchen screens and tablets with bold table numbers, elapsed timers (< 10m green, 10-20m warning, > 20m urgent alert), interactive dish checklists, chef acceptance ("Start Cooking"), and "Plated & Ready" alerts.
+4. **Admin Dashboard** (`/admin`): Manage dishes, categories, images, prices, tags, payment accounts (Telebirr & CBE numbers), QR code table generator, and backups.
 
-Built with Next.js, Supabase (database, login, picture storage) and deployed on Vercel.
+---
 
-## 1. Set up Supabase (free)
-
-1. Create a project at https://supabase.com.
-2. Open **SQL Editor**, paste the contents of `supabase/schema.sql`, and run it. This creates the tables, the `menu` picture bucket and the security rules.
-   (Already ran an older `schema.sql`? Run only `supabase/update-1.sql` once instead.)
-3. Open **Authentication > Users > Add user** and create the admin account (email and password).
-4. Open **Authentication > Sign In / Providers** and turn off **Allow new users to sign up**, so only your admin can edit the menu.
-5. Open **Project Settings > API** and copy the **Project URL** and the **anon public** key.
-
-## 2. Run it on your computer (optional)
+## System Workflow
 
 ```
+[Customer on Phone]
+       │
+       ▼ Scans QR Code at Table (e.g. ?table=4)
+Selects Dishes + Notes ➔ Submits Order
+       │
+       ├─ Cash Payment ───────────────┐
+       └─ Telebirr / CBE Transfer     │
+          (Submits Txn Link/Photo)    │
+                                      ▼
+                             [Cashier Desk /cashier]
+                                      │
+                      Verifies Txn Link & Screenshot
+                                      │
+                         [Confirm & Send to Kitchen]
+                                      │
+                                      ▼
+                            [Kitchen Display /kitchen]
+                                      │
+                        Chef clicks "Start Cooking"
+                                      │
+                       Chef clicks "Plated & Ready"
+                                      │
+                                      ▼
+                        Customer & Waiter Notified!
+                                      │
+                         Food Served & Completed
+```
+
+---
+
+## 1. Supabase Setup
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. Open **SQL Editor**, paste the contents of `supabase/schema.sql` (or `supabase/orders.sql` if updating an existing database), and click **Run**.
+   - This creates:
+     - `categories`, `items`, `settings`, and `orders` tables.
+     - `menu` and `receipts` storage buckets for dish pictures and payment receipt screenshots.
+     - Real-time event publications and security policies.
+3. Open **Project Settings > API** and copy:
+   - **Project URL**
+   - **anon public** key
+4. Put them in your `.env.local` file:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   ```
+
+---
+
+## 2. Run Locally
+
+```bash
 npm install
-cp .env.example .env.local     # then paste your URL and key into .env.local
 npm run dev
 ```
 
-Open http://localhost:3000 (menu) and http://localhost:3000/admin (admin).
+Open:
+- **Customer Menu & Ordering**: [http://localhost:3000](http://localhost:3000)
+- **Table 5 Test Menu**: [http://localhost:3000?table=5](http://localhost:3000?table=5)
+- **Cashier Station**: [http://localhost:3000/cashier](http://localhost:3000/cashier)
+- **Kitchen Display (KDS)**: [http://localhost:3000/kitchen](http://localhost:3000/kitchen)
+- **Admin Dashboard**: [http://localhost:3000/admin](http://localhost:3000/admin)
 
-## 3. Put it on GitHub
+---
 
-1. Create a new repository named `hiraga-menu` on https://github.com.
-2. In this folder:
-```
-git init
-git add .
-git commit -m "Hiraga menu"
-git branch -M main
-git remote add origin https://github.com/YOUR-NAME/hiraga-menu.git
-git push -u origin main
-```
+## 3. Deployment on Vercel
 
-## 4. Deploy on Vercel (free)
-
-1. Sign in at https://vercel.com with GitHub and click **Add New > Project**.
-2. Import `hiraga-menu`.
-3. Under **Environment Variables** add:
+1. Push your repository to GitHub.
+2. Sign in to [Vercel](https://vercel.com) and click **Add New > Project**.
+3. Import the repository.
+4. Under **Environment Variables**, add:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Click **Deploy**. Every later `git push` redeploys automatically.
+5. Click **Deploy**.
 
-## 5. QR codes
+---
 
-1. Open `https://YOUR-SITE.vercel.app/admin` and sign in.
-2. Use the **QR code** section. Leave the table empty for one general QR, or type a table number for a table-specific one (the menu then shows "Table 5").
-3. Download the PNG and print it. If you later add your own domain in Vercel, create the QR codes again from the new address.
+## Features Summary
 
-## Admin features
+- **Customer Ordering**:
+  - English and Amharic language toggle.
+  - Table number auto-detection from QR code.
+  - Cart with item notes (e.g. "no onion", "extra spicy").
+  - Digital payment support: customer gets restaurant's Telebirr & CBE numbers with 1-click copy.
+  - Proof submission: transaction reference code/link and photo/screenshot upload.
+  - Live order tracking timeline: Submitted ➔ Confirmed ➔ Cooking ➔ Ready ➔ Completed.
 
-- Dishes: picture, price, English and Amharic text, tags (Fasting, Vegetarian, Spicy, Chef's special), Today's special, sold out, reorder with the arrows.
-- Restaurant info: tagline, opening hours, address, phone, map and social links (shown at the bottom of the menu).
-- QR: general or per-table QR, PNG download, and a printable Hiraga table card.
-- Backup: one click downloads all menu data as a JSON file.
+- **Cashier Station**:
+  - Live order feed with audio chimes.
+  - Image lightbox to inspect transaction receipts.
+  - 1-click "Confirm Payment & Send to Kitchen".
+  - Reject order with customer notice.
+  - Printable guest bill / receipt formatted for thermal printers.
+  - Walk-in / phone order POS entry.
 
-## Notes
-
-- Change the currency text (`ETB` / `ብር`) in `app/page.js` and `app/admin/page.js`.
-- Colors are in `app/globals.css` (`:root` at the top).
-- Pictures are shrunk to 900px in the browser before upload to keep the menu fast on mobile data.
+- **Kitchen KDS**:
+  - Touchscreen-friendly dark theme.
+  - Bold Table numbers and Order IDs.
+  - Elapsed ticket time counter with color alerts.
+  - Interactive dish strike-through checklist.
+  - "Accept & Start Cooking" and "Plated & Ready" actions.
