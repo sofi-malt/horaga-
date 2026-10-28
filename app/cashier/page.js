@@ -11,11 +11,11 @@ import {
 import { playChime } from '../../lib/audio';
 
 export default function CashierPage() {
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [authChecking, setAuthChecking] = useState(true);
-  const [pinInput, setPinInput] = useState('');
-  const [pinError, setPinError] = useState('');
-  const [expectedPin, setExpectedPin] = useState('1234');
+  const [session, setSession] = useState(undefined);
+  const [email, setEmail] = useState('');
+  const [pw, setPw] = useState('');
+  const [loginMsg, setLoginMsg] = useState({ text: '', bad: false });
+  const [busyLogin, setBusyLogin] = useState(false);
 
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState('pending'); // 'pending' | 'kitchen' | 'ready' | 'completed' | 'all'
@@ -34,44 +34,31 @@ export default function CashierPage() {
   const [menuItems, setMenuItems] = useState([]);
   const [posTotal, setPosTotal] = useState(0);
 
-  // Check auth on load
+  // Check auth session
   useEffect(() => {
-    const isAuthedSession = sessionStorage.getItem('hiraga_cashier_authed') === 'true';
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session || isAuthedSession) {
-        setIsAuthorized(true);
-      }
-      setAuthChecking(false);
-    });
-
-    supabase
-      .from('settings')
-      .select('cashier_pin')
-      .eq('id', 1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.cashier_pin) {
-          setExpectedPin(String(data.cashier_pin));
-        }
-      });
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    return () => data.subscription.unsubscribe();
   }, []);
 
-  const handleUnlock = (e) => {
-    if (e) e.preventDefault();
-    if (pinInput.trim() === expectedPin || pinInput.trim() === '1234') {
-      setIsAuthorized(true);
-      sessionStorage.setItem('hiraga_cashier_authed', 'true');
-      setPinError('');
-    } else {
-      setPinError('Incorrect PIN. Please try again.');
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setBusyLogin(true);
+    setLoginMsg({ text: '', bad: false });
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: pw,
+    });
+
+    setBusyLogin(false);
+    if (error) {
+      setLoginMsg({ text: error.message, bad: true });
     }
   };
 
-  const handleLock = () => {
-    setIsAuthorized(false);
-    sessionStorage.removeItem('hiraga_cashier_authed');
-    setPinInput('');
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
   };
 
   const loadOrders = useCallback(async () => {
@@ -80,7 +67,7 @@ export default function CashierPage() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthorized) return;
+    if (!session) return;
 
     loadOrders();
 
@@ -105,7 +92,7 @@ export default function CashierPage() {
     });
 
     return () => unsubscribe();
-  }, [isAuthorized, loadOrders]);
+  }, [session, loadOrders]);
 
   // Actions
   const handleConfirmPayment = async (order) => {
@@ -202,77 +189,60 @@ export default function CashierPage() {
     loadOrders();
   };
 
-  // If checking authentication
-  if (authChecking) {
+  // Loading session state
+  if (session === undefined) {
     return (
       <main className="wrap" style={{ textAlign: 'center', paddingTop: 80 }}>
-        <p className="empty">Checking authorization...</p>
+        <p className="empty">Checking cashier authorization...</p>
       </main>
     );
   }
 
-  // If not authorized: Staff PIN Lock Screen
-  if (!isAuthorized) {
+  // If not signed in: Email & Password Cashier Sign-in Form
+  if (!session) {
     return (
-      <main className="wrap" style={{ maxWidth: 420, paddingTop: 60 }}>
+      <main className="wrap" style={{ maxWidth: 440, paddingTop: 60 }}>
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
           <img src="/logo.png" alt="Hiraga" style={{ width: 140, height: 'auto', marginBottom: 12 }} />
-          <h2 style={{ margin: '0 0 6px', color: 'var(--o)' }}>🔒 Cashier Station</h2>
-          <p className="sm">Restricted Area. Restaurant staff access only.</p>
+          <h2 style={{ margin: '0 0 6px', color: 'var(--o)' }}>💵 Cashier Desk Sign In</h2>
+          <p className="sm">Restricted Area. Authorized cashier staff sign-in.</p>
         </div>
 
-        <form className="panel" onSubmit={handleUnlock}>
-          <label style={{ fontSize: '.9rem', fontWeight: 600 }}>Enter Staff PIN:</label>
+        <form className="panel" onSubmit={handleLogin}>
+          <label style={{ fontSize: '.88rem', fontWeight: 600 }}>Cashier Email Address:</label>
           <input
-            type="password"
+            type="email"
+            required
             autoFocus
-            maxLength={8}
-            placeholder="••••"
-            value={pinInput}
-            onChange={(e) => {
-              setPinInput(e.target.value);
-              setPinError('');
-            }}
-            style={{
-              fontSize: '1.6rem',
-              textAlign: 'center',
-              letterSpacing: '8px',
-              padding: '12px',
-              margin: '8px 0',
-            }}
+            placeholder="cashier@restaurant.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
 
-          {pinError && <p className="err" style={{ textAlign: 'center', margin: '4px 0 10px' }}>{pinError}</p>}
+          <label style={{ fontSize: '.88rem', fontWeight: 600, marginTop: 8, display: 'block' }}>
+            Password:
+          </label>
+          <input
+            type="password"
+            required
+            placeholder="Password"
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+          />
 
-          {/* Quick Numpad */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 8,
-              margin: '12px 0 16px',
-            }}
+          {loginMsg.text && (
+            <p className={loginMsg.bad ? 'err' : 'ok'} style={{ margin: '8px 0', fontSize: '.88rem' }}>
+              {loginMsg.text}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            className="btn o"
+            style={{ width: '100%', marginTop: 12, padding: 12, fontSize: '1.02rem' }}
+            disabled={busyLogin}
           >
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map((k) => (
-              <button
-                key={k}
-                type="button"
-                className="btn x"
-                style={{ fontSize: '1.25rem', padding: '12px 0', borderRadius: 10 }}
-                onClick={() => {
-                  if (k === 'C') setPinInput('');
-                  else if (k === '⌫') setPinInput((p) => p.slice(0, -1));
-                  else setPinInput((p) => (p.length < 8 ? p + k : p));
-                  setPinError('');
-                }}
-              >
-                {k}
-              </button>
-            ))}
-          </div>
-
-          <button className="btn" style={{ width: '100%', padding: 12, fontSize: '1.05rem' }}>
-            Unlock Cashier Desk
+            {busyLogin ? 'Signing in...' : 'Sign In to Cashier Desk'}
           </button>
         </form>
 
@@ -339,7 +309,9 @@ export default function CashierPage() {
             <h1 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--o)' }}>
               💵 Cashier Desk
             </h1>
-            <span className="sm">Hiraga Restaurant Management</span>
+            <span className="sm">
+              Staff: <b>{session.user?.email}</b>
+            </span>
           </div>
         </div>
 
@@ -360,8 +332,8 @@ export default function CashierPage() {
           <a href="/admin" className="btn sm x">
             ⚙️ Admin
           </a>
-          <button className="btn sm danger" onClick={handleLock} title="Lock cashier desk">
-            🔒 Lock
+          <button className="btn sm danger" onClick={handleSignOut} title="Sign out of Cashier Desk">
+            Sign out
           </button>
         </div>
       </div>

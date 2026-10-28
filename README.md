@@ -57,6 +57,11 @@ Selects Dishes + Notes ➔ Submits Order
    NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
    ```
+5. Open **Authentication > Users > Add user** and create accounts with email and password:
+   - **Admin Account**: for `/admin` (menu & restaurant management)
+   - **Cashier Account**: for `/cashier` (order & payment verification)
+   - **Head Chef Account**: for `/kitchen` (Kitchen Display System)
+6. Open **Authentication > Sign In / Providers** and turn off **Allow new users to sign up**, so only staff you invite can log in.
 
 ---
 

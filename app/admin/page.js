@@ -571,26 +571,14 @@ create policy "public update receipts" on storage.objects for update using (buck
         </div>
 
         <h3 style={{ fontSize: '1.1rem', color: 'var(--g)', margin: '14px 0 6px' }}>
-          🔒 Staff Access PINs (Hidden from Customers)
+          🔒 Staff Authentication (Cashier & Head Chef)
         </h3>
-        <p className="sm">Set the security PIN required to open the Cashier Desk and Kitchen screens.</p>
-        <div className="row">
-          <div>
-            <label style={{ fontSize: '.85rem' }}>Cashier Station PIN:</label>
-            <input
-              placeholder="Default: 1234"
-              value={st.cashier_pin || ''}
-              onChange={(e) => setSt({ ...st, cashier_pin: e.target.value })}
-            />
-          </div>
-          <div>
-            <label style={{ fontSize: '.85rem' }}>Kitchen KDS PIN:</label>
-            <input
-              placeholder="Default: 1234"
-              value={st.kitchen_pin || ''}
-              onChange={(e) => setSt({ ...st, kitchen_pin: e.target.value })}
-            />
-          </div>
+        <p className="sm">
+          The Cashier Desk (<code>/cashier</code>) and Kitchen Display (<code>/kitchen</code>) are protected and require staff email &amp; password sign-in. To add staff accounts, go to your Supabase Dashboard &gt; <b>Authentication</b> &gt; <b>Users</b> &gt; <b>Add user</b>.
+        </p>
+        <div style={{ display: 'flex', gap: 10, margin: '8px 0 14px' }}>
+          <a href="/cashier" className="btn sm o">Open Cashier Station</a>
+          <a href="/kitchen" className="btn sm" style={{ background: 'var(--b)', color: '#fff' }}>Open Kitchen KDS</a>
         </div>
 
         <h3 style={{ fontSize: '1.1rem', margin: '14px 0 6px' }}>General Information</h3>
