@@ -45,6 +45,7 @@ create table if not exists settings (
   id int primary key default 1 check (id = 1),
   tagline text, tagline_am text, phone text, address text, hours text,
   map_url text, instagram text, facebook text, telegram text,
+  whatsapp text, tiktok text, youtube text, twitter text, email text, website text,
   telebirr_name text, telebirr_number text,
   cbe_name text, cbe_number text, payment_instructions text,
   cashier_pin text default '1234', kitchen_pin text default '1234'

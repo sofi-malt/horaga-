@@ -10,6 +10,7 @@ import {
   ORDER_STATUSES,
 } from '../lib/orders';
 import { playChime } from '../lib/audio';
+import SocialMediaBar from '../components/SocialMedia';
 
 const TEXT = {
   en: {
@@ -404,9 +405,21 @@ export default function Menu() {
     </div>
   );
 
-  const hasInfo = ['phone', 'address', 'hours', 'map_url', 'instagram', 'facebook', 'telegram'].some(
-    (k) => st[k]
-  );
+  const hasInfo = [
+    'phone',
+    'address',
+    'hours',
+    'map_url',
+    'instagram',
+    'facebook',
+    'telegram',
+    'whatsapp',
+    'tiktok',
+    'youtube',
+    'twitter',
+    'email',
+    'website',
+  ].some((k) => st[k]);
 
   return (
     <main className="wrap">
@@ -493,46 +506,24 @@ export default function Menu() {
         </section>
       ))}
 
-      {/* Footer Info */}
+      {/* Footer Info & Hypermedia Social Links */}
       {hasInfo && (
-        <footer className="info">
+        <footer className="info" style={{ textAlign: 'center' }}>
           {st.hours && (
-            <>
-              <b>{L.hours}</b>
-              {'\n'}
-              {st.hours}
-              {'\n\n'}
-            </>
+            <div style={{ marginBottom: 12 }}>
+              <b style={{ color: 'var(--tx)', display: 'block', fontSize: '.95rem' }}>{L.hours}</b>
+              <div style={{ whiteSpace: 'pre-line', fontSize: '.9rem', color: 'var(--mu)' }}>{st.hours}</div>
+            </div>
           )}
           {st.address && (
-            <>
-              <b>{L.find}</b>
-              {'\n'}
-              {st.address}
-              {'\n\n'}
-            </>
+            <div style={{ marginBottom: 14 }}>
+              <b style={{ color: 'var(--tx)', display: 'block', fontSize: '.95rem' }}>{L.find}</b>
+              <div style={{ fontSize: '.9rem', color: 'var(--mu)' }}>{st.address}</div>
+            </div>
           )}
-          {st.phone && <a href={'tel:' + st.phone.replace(/[^+\d]/g, '')}>{st.phone}</a>}
-          {st.map_url && (
-            <a href={st.map_url} target="_blank" rel="noreferrer">
-              Map
-            </a>
-          )}
-          {st.instagram && (
-            <a href={st.instagram} target="_blank" rel="noreferrer">
-              Instagram
-            </a>
-          )}
-          {st.facebook && (
-            <a href={st.facebook} target="_blank" rel="noreferrer">
-              Facebook
-            </a>
-          )}
-          {st.telegram && (
-            <a href={st.telegram} target="_blank" rel="noreferrer">
-              Telegram
-            </a>
-          )}
+
+          {/* Hypermedia Social and Contact Icon Buttons */}
+          <SocialMediaBar settings={st} lang={lang} />
         </footer>
       )}
 

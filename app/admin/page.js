@@ -259,6 +259,12 @@ alter table settings add column if not exists telebirr_number text;
 alter table settings add column if not exists cbe_name text;
 alter table settings add column if not exists cbe_number text;
 alter table settings add column if not exists payment_instructions text;
+alter table settings add column if not exists whatsapp text;
+alter table settings add column if not exists tiktok text;
+alter table settings add column if not exists youtube text;
+alter table settings add column if not exists twitter text;
+alter table settings add column if not exists email text;
+alter table settings add column if not exists website text;
 alter table settings add column if not exists cashier_pin text default '1234';
 alter table settings add column if not exists kitchen_pin text default '1234';
 
@@ -605,36 +611,86 @@ create policy "public update receipts" on storage.objects for update using (buck
           value={st.address || ''}
           onChange={(e) => setSt({ ...st, address: e.target.value })}
         />
+        <h3 style={{ fontSize: '1.1rem', margin: '14px 0 6px', color: 'var(--o)' }}>
+          🌐 Hypermedia Contact & Social Media Links
+        </h3>
+        <p className="sm">
+          Shown as interactive icon buttons in the customer menu footer. Enter full links or usernames.
+        </p>
+
         <div className="row">
           <input
-            placeholder="Phone"
+            placeholder="Phone Number (e.g. +251911223344)"
             value={st.phone || ''}
             onChange={(e) => setSt({ ...st, phone: e.target.value })}
           />
+          <input
+            placeholder="WhatsApp (e.g. +251911223344 or wa.me/...)"
+            value={st.whatsapp || ''}
+            onChange={(e) => setSt({ ...st, whatsapp: e.target.value })}
+          />
+        </div>
+
+        <div className="row">
+          <input
+            placeholder="Telegram (e.g. @hiragarestaurant or t.me/...)"
+            value={st.telegram || ''}
+            onChange={(e) => setSt({ ...st, telegram: e.target.value })}
+          />
+          <input
+            placeholder="TikTok (e.g. @hiragafood or tiktok.com/...)"
+            value={st.tiktok || ''}
+            onChange={(e) => setSt({ ...st, tiktok: e.target.value })}
+          />
+        </div>
+
+        <div className="row">
+          <input
+            placeholder="Instagram (e.g. @hiragarestaurant or instagram.com/...)"
+            value={st.instagram || ''}
+            onChange={(e) => setSt({ ...st, instagram: e.target.value })}
+          />
+          <input
+            placeholder="Facebook Page (e.g. facebook.com/hiragarestaurant)"
+            value={st.facebook || ''}
+            onChange={(e) => setSt({ ...st, facebook: e.target.value })}
+          />
+        </div>
+
+        <div className="row">
+          <input
+            placeholder="YouTube (e.g. @hiragahotel or youtube.com/...)"
+            value={st.youtube || ''}
+            onChange={(e) => setSt({ ...st, youtube: e.target.value })}
+          />
+          <input
+            placeholder="X / Twitter (e.g. @hiragarestaurant or x.com/...)"
+            value={st.twitter || ''}
+            onChange={(e) => setSt({ ...st, twitter: e.target.value })}
+          />
+        </div>
+
+        <div className="row">
           <input
             placeholder="Google Maps link"
             value={st.map_url || ''}
             onChange={(e) => setSt({ ...st, map_url: e.target.value })}
           />
+          <input
+            placeholder="Official Website URL (e.g. https://hiragahotel.com)"
+            value={st.website || ''}
+            onChange={(e) => setSt({ ...st, website: e.target.value })}
+          />
         </div>
+
         <div className="row">
           <input
-            placeholder="Instagram link"
-            value={st.instagram || ''}
-            onChange={(e) => setSt({ ...st, instagram: e.target.value })}
-          />
-          <input
-            placeholder="Facebook link"
-            value={st.facebook || ''}
-            onChange={(e) => setSt({ ...st, facebook: e.target.value })}
-          />
-          <input
-            placeholder="Telegram link"
-            value={st.telegram || ''}
-            onChange={(e) => setSt({ ...st, telegram: e.target.value })}
+            placeholder="Email Address (e.g. info@hiragahotel.com)"
+            value={st.email || ''}
+            onChange={(e) => setSt({ ...st, email: e.target.value })}
           />
         </div>
-        <button className="btn">Save Restaurant & Payment Info</button>
+        <button className="btn">Save Restaurant & Social Info</button>
       </form>
 
       {/* Supabase Orders SQL Setup */}

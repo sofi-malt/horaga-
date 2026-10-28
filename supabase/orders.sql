@@ -38,6 +38,12 @@ alter table settings add column if not exists telebirr_number text;
 alter table settings add column if not exists cbe_name text;
 alter table settings add column if not exists cbe_number text;
 alter table settings add column if not exists payment_instructions text;
+alter table settings add column if not exists whatsapp text;
+alter table settings add column if not exists tiktok text;
+alter table settings add column if not exists youtube text;
+alter table settings add column if not exists twitter text;
+alter table settings add column if not exists email text;
+alter table settings add column if not exists website text;
 alter table settings add column if not exists cashier_pin text default '1234';
 alter table settings add column if not exists kitchen_pin text default '1234';
 
