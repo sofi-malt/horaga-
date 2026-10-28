@@ -11,105 +11,9 @@ import {
 } from '../lib/orders';
 import { playChime } from '../lib/audio';
 import SocialMediaBar from '../components/SocialMedia';
+import { getDictionary } from '../lib/translations';
 
-const TEXT = {
-  en: {
-    search: 'Search the menu',
-    all: 'All',
-    sold: 'Sold out',
-    loading: 'Loading menu...',
-    empty: 'No dishes match your search.',
-    fail: 'The menu could not load. Please ask the staff.',
-    table: 'Table',
-    close: 'Close',
-    cur: 'ETB',
-    special: "Today's special",
-    hours: 'Opening hours',
-    find: 'Find us',
-    tagline: 'Fresh food, made with care',
-    addToOrder: 'Add to Order',
-    viewCart: 'View Order',
-    cartTitle: 'Your Order',
-    cartEmpty: 'Your order is currently empty.',
-    tableNumber: 'Table Number (or Takeaway)',
-    custName: 'Your Name (optional)',
-    custPhone: 'Phone Number (optional)',
-    orderNotes: 'Special kitchen requests (e.g. no pepper)',
-    payMethod: 'Payment Method',
-    payCash: 'Cash at Counter',
-    payDigital: 'Telebirr / CBE / Bank Transfer',
-    transferTo: 'Transfer payment to:',
-    cbeAcc: 'CBE Account',
-    telebirrAcc: 'Telebirr',
-    copied: 'Copied!',
-    copy: 'Copy',
-    txnRef: 'Transaction Reference or Link',
-    txnPlaceholder: 'e.g. CBE transaction code, Telebirr txn ID or link',
-    screenshotProof: 'Attach Payment Screenshot / Receipt',
-    screenshotChange: 'Change screenshot',
-    submitOrder: 'Confirm & Place Order',
-    submitting: 'Submitting Order...',
-    myOrder: 'My Order',
-    activeOrder: 'Active Order',
-    orderSuccess: 'Order placed successfully!',
-    orderNum: 'Order #',
-    status: 'Status',
-    total: 'Total',
-    qty: 'Qty',
-    backToMenu: 'Back to Menu',
-    callStaff: 'Need help? Ask our staff',
-    rejection: 'Cashier note:',
-    itemNotes: 'Item request (e.g. extra sauce)',
-  },
-  am: {
-    search: 'ምናሌውን ይፈልጉ',
-    all: 'ሁሉም',
-    sold: 'አልቋል',
-    loading: 'ምናሌው በመጫን ላይ ነው...',
-    empty: 'ምንም ምግብ አልተገኘም።',
-    fail: 'ምናሌው አልተከፈተም። እባክዎ ሰራተኞችን ይጠይቁ።',
-    table: 'ጠረጴዛ',
-    close: 'ዝጋ',
-    cur: 'ብር',
-    special: 'የዛሬ ልዩ',
-    hours: 'የስራ ሰዓት',
-    find: 'አድራሻ',
-    tagline: 'በጥንቃቄ የተዘጋጀ ትኩስ ምግብ',
-    addToOrder: 'ወደ ትዕዛዝ ጨምር',
-    viewCart: 'ትዕዛዝህን ተመልከት',
-    cartTitle: 'የእርስዎ ትዕዛዝ',
-    cartEmpty: 'ምንም ምግብ አልተመረጠም።',
-    tableNumber: 'የጠረጴዛ ቁጥር (ወይም የሚወሰድ)',
-    custName: 'ስምዎ (አማራጭ)',
-    custPhone: 'ስልክ ቁጥር (አማራጭ)',
-    orderNotes: 'ለኩሽናው ልዩ ማስታወሻ',
-    payMethod: 'የክፍያ ዘዴ',
-    payCash: 'በጥሬ ገንዘብ (ካሸር ጋር)',
-    payDigital: 'በቴሌብር / ንግድ ባንክ (CBE)',
-    transferTo: 'ወደዚህ ሂሳብ ያስተላልፉ:',
-    cbeAcc: 'የንግድ ባንክ (CBE)',
-    telebirrAcc: 'ቴሌብር',
-    copied: 'ተገልብጧል!',
-    copy: 'ቅዳ',
-    txnRef: 'የግብይት ኮድ (Transaction Code) ወይም ሊንክ',
-    txnPlaceholder: 'ለምሳሌ፡ የቴሌብር ኮድ ወይም የንግድ ባንክ ደረሰኝ ቁጥር',
-    screenshotProof: 'የክፍያ ደረሰኝ ስክሪንሾት (ፎቶ) ይጫኑ',
-    screenshotChange: 'ፎቶውን ቀይር',
-    submitOrder: 'ትዕዛዙን አረጋግጥና ላክ',
-    submitting: 'ትዕዛዝ በመላክ ላይ...',
-    myOrder: 'የእኔ ትዕዛዝ',
-    activeOrder: 'ወቅታዊ ትዕዛዝ',
-    orderSuccess: 'ትዕዛዝዎ በተሳካ ሁኔታ ተልኳል!',
-    orderNum: 'የትዕዛዝ ቁጥር',
-    status: 'ሁኔታ',
-    total: 'አጠቃላይ ድምር',
-    qty: 'ብዛት',
-    backToMenu: 'ወደ ምናሌ ተመለስ',
-    callStaff: 'እርዳታ ይፈልጋሉ? አስተናጋጁን ይጠይቁ',
-    rejection: 'ከካሸሩ የተሰጠ ማስታወሻ:',
-    itemNotes: 'ለዚህ ምግብ ልዩ ምርጫ',
-  },
-};
+
 
 export default function Menu() {
   const [cats, setCats] = useState([]);
@@ -146,7 +50,7 @@ export default function Menu() {
   const [activeOrder, setActiveOrder] = useState(null);
   const [showOrderTracker, setShowOrderTracker] = useState(false);
 
-  const L = TEXT[lang];
+  const L = getDictionary(lang);
 
   // Initialize
   useEffect(() => {

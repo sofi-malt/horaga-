@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { TRANSLATIONS } from '../lib/translations';
 
 // Crisp, lightweight vector SVGs for all contact and social platforms
 export const ICONS = {
@@ -129,32 +130,32 @@ export function formatSocialUrl(key, raw) {
 
 export const LABELS = {
   en: {
-    phone: 'Call Us',
-    telegram: 'Telegram',
-    whatsapp: 'WhatsApp',
-    tiktok: 'TikTok',
-    instagram: 'Instagram',
-    facebook: 'Facebook',
-    youtube: 'YouTube',
-    twitter: 'X (Twitter)',
-    map_url: 'Find on Map',
-    email: 'Email Us',
-    website: 'Website',
-    connectTitle: 'Connect & Follow Us',
+    phone: TRANSLATIONS.social_phone.en,
+    telegram: TRANSLATIONS.social_telegram.en,
+    whatsapp: TRANSLATIONS.social_whatsapp.en,
+    tiktok: TRANSLATIONS.social_tiktok.en,
+    instagram: TRANSLATIONS.social_instagram.en,
+    facebook: TRANSLATIONS.social_facebook.en,
+    youtube: TRANSLATIONS.social_youtube.en,
+    twitter: TRANSLATIONS.social_twitter.en,
+    map_url: TRANSLATIONS.social_map.en,
+    email: TRANSLATIONS.social_email.en,
+    website: TRANSLATIONS.social_website.en,
+    connectTitle: TRANSLATIONS.social_connectTitle.en,
   },
   am: {
-    phone: 'ይደውሉልን',
-    telegram: 'ቴሌግራም',
-    whatsapp: 'ዋትስአፕ',
-    tiktok: 'ቲክቶክ',
-    instagram: 'ኢንስታግራም',
-    facebook: 'ፌስቡክ',
-    youtube: 'ዩቲዩብ',
-    twitter: 'ኤክስ (ትዊተር)',
-    map_url: 'አድራሻ በካርታ',
-    email: 'ኢሜይል',
-    website: 'ድህረ ገጽ',
-    connectTitle: 'ማህበራዊ ገጾቻችንን ይጎብኙ',
+    phone: TRANSLATIONS.social_phone.am,
+    telegram: TRANSLATIONS.social_telegram.am,
+    whatsapp: TRANSLATIONS.social_whatsapp.am,
+    tiktok: TRANSLATIONS.social_tiktok.am,
+    instagram: TRANSLATIONS.social_instagram.am,
+    facebook: TRANSLATIONS.social_facebook.am,
+    youtube: TRANSLATIONS.social_youtube.am,
+    twitter: TRANSLATIONS.social_twitter.am,
+    map_url: TRANSLATIONS.social_map.am,
+    email: TRANSLATIONS.social_email.am,
+    website: TRANSLATIONS.social_website.am,
+    connectTitle: TRANSLATIONS.social_connectTitle.am,
   },
 };
 
