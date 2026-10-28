@@ -218,7 +218,7 @@ export default function Admin() {
   const printCard = () => {
     const w = window.open('', '_blank');
     w.document.write(
-      `<html><head><title>Hiraga QR card</title><style>body{margin:0;background:#000;color:#fff;font-family:system-ui;text-align:center;padding:30px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.l{width:300px}.q{width:320px;background:#fff;padding:14px;border-radius:18px}h1{margin:14px 0 4px;color:#f59e0b}p{color:#aaa;margin:0 0 14px}</style></head><body><img class="l" src="${location.origin}/logo.png"><h1>Scan for our menu</h1><p>ምናሌውን ለማየት ስካን ያድርጉ</p><img class="q" src="${qr.img}">${tbl ? `<h1>Table ${tbl.replace(/[<>&"]/g, '')}</h1>` : ''}<script>onload=function(){setTimeout(print,400)}<\/script></body></html>`
+      `<html><head><title>Hiraga QR card</title><style>body{margin:0;background:#000;color:#fff;font-family:system-ui;text-align:center;padding:30px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.l{width:300px}.q{width:320px;background:#fff;padding:14px;border-radius:18px}h1{margin:14px 0 4px;color:#f59e0b}p{color:#aaa;margin:0 0 14px}</style></head><body><img class="l" src="${location.origin}/logo.png"><h1>Scan for our menu</h1><p>ሜኑውን ለማየት ስካን ያድርጉ</p><img class="q" src="${qr.img}">${tbl ? `<h1>Table ${tbl.replace(/[<>&"]/g, '')}</h1>` : ''}<script>onload=function(){setTimeout(print,400)}<\/script></body></html>`
     );
     w.document.close();
   };
