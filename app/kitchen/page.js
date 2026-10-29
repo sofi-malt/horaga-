@@ -7,13 +7,13 @@ import {
   subscribeToOrders,
 } from '../../lib/orders';
 import { playChime } from '../../lib/audio';
+import StaffLoginForm from '../../components/StaffLoginForm';
+import StaffSecurityModal from '../../components/StaffSecurityModal';
 
 export default function KitchenPage() {
   const [session, setSession] = useState(undefined);
-  const [email, setEmail] = useState('');
-  const [pw, setPw] = useState('');
-  const [loginMsg, setLoginMsg] = useState({ text: '', bad: false });
-  const [busyLogin, setBusyLogin] = useState(false);
+  const [lang, setLang] = useState('am');
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
 
   const [orders, setOrders] = useState([]);
   const [tab, setTab] = useState('active'); // 'active' | 'ready' | 'history'
@@ -138,87 +138,21 @@ export default function KitchenPage() {
     );
   }
 
-  // If not signed in: Email & Password Head Chef Sign-in Form
+  // If not signed in: Free Staff Login with Password, Email OTP, or 2FA
   if (!session) {
     return (
-      <main
-        style={{
-          minHeight: '100vh',
-          background: '#0a0a08',
-          color: '#f6f3ea',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 20,
-        }}
-      >
-        <div style={{ maxWidth: 420, width: '100%', textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: 8 }}>👨‍🍳</div>
-          <h2 style={{ margin: '0 0 6px', color: 'var(--g)', fontSize: '1.6rem' }}>
-            KITCHEN DISPLAY (KDS)
-          </h2>
-          <p className="sm" style={{ marginBottom: 20 }}>
-            Restricted Area. Head of Chef & Kitchen Staff sign-in.
-          </p>
-
-          <form
-            className="panel"
-            onSubmit={handleLogin}
-            style={{ background: '#161613', borderColor: '#2a2a25', textAlign: 'left' }}
-          >
-            <label style={{ fontSize: '.88rem', fontWeight: 600 }}>Head Chef Email:</label>
-            <input
-              type="email"
-              required
-              autoFocus
-              placeholder="chef@restaurant.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-
-            <label style={{ fontSize: '.88rem', fontWeight: 600, marginTop: 10, display: 'block' }}>
-              Password:
-            </label>
-            <input
-              type="password"
-              required
-              placeholder="Password"
-              value={pw}
-              onChange={(e) => setPw(e.target.value)}
-            />
-
-            {loginMsg.text && (
-              <p className={loginMsg.bad ? 'err' : 'ok'} style={{ margin: '8px 0', fontSize: '.88rem' }}>
-                {loginMsg.text}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              className="btn"
-              style={{
-                width: '100%',
-                marginTop: 14,
-                padding: 13,
-                fontSize: '1.05rem',
-                fontWeight: 800,
-                background: 'var(--g)',
-                color: '#06120a',
-              }}
-              disabled={busyLogin}
-            >
-              {busyLogin ? 'Signing in...' : 'Sign In as Head Chef'}
-            </button>
-          </form>
-
-          <div style={{ textAlign: 'center', marginTop: 14 }}>
-            <a href="/" style={{ color: 'var(--mu)', fontSize: '.88rem', textDecoration: 'none' }}>
-              ← Back to Customer Menu
-            </a>
-          </div>
-        </div>
-      </main>
+      <StaffLoginForm
+        title={lang === 'am' ? 'የኩሽና ሼፍ መግቢያ (KDS)' : 'Kitchen Display (KDS) Sign In'}
+        subtitle={
+          lang === 'am'
+            ? 'የተፈቀደላቸው የኩሽና ሰራተኞች ብቻ'
+            : 'Restricted Area. Head of Chef & Kitchen Staff sign-in.'
+        }
+        icon="👨‍🍳"
+        lang={lang}
+        onLangChange={setLang}
+        onLoginSuccess={(s) => setSession(s)}
+      />
     );
   }
 
@@ -292,6 +226,13 @@ export default function KitchenPage() {
           </button>
           <button className="btn sm x" onClick={toggleFullscreen}>
             {isFullscreen ? 'Exit Fullscreen' : '⛶ Fullscreen'}
+          </button>
+          <button
+            className="btn sm o"
+            onClick={() => setShowSecurityModal(true)}
+            title="Change Password & 2FA"
+          >
+            🔑 {lang === 'am' ? 'የይለፍ ቃልና ደህንነት' : 'Security'}
           </button>
           <a href="/cashier" className="btn sm x">
             💵 Cashier
@@ -537,6 +478,14 @@ export default function KitchenPage() {
           })}
         </div>
       )}
+
+      {/* 100% Free Staff Security, Password Change & 2FA Modal */}
+      <StaffSecurityModal
+        isOpen={showSecurityModal}
+        onClose={() => setShowSecurityModal(false)}
+        session={session}
+        lang={lang}
+      />
     </main>
   );
 }

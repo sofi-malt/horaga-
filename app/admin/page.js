@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { supabase } from '../../lib/supabase';
 import { TAGS } from '../../lib/tags';
+import StaffLoginForm from '../../components/StaffLoginForm';
+import StaffSecurityModal from '../../components/StaffSecurityModal';
 
 const EMPTY = {
   name: '',
@@ -47,6 +49,7 @@ export default function Admin() {
   const [qr, setQr] = useState({ url: '', img: '' });
   const [st, setSt] = useState({});
   const [copiedSql, setCopiedSql] = useState(false);
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
 
   // Staff accounts state
   const [staffList, setStaffList] = useState([]);
@@ -401,30 +404,13 @@ create policy "admin write staff" on staff for all to authenticated using (true)
 
   if (!session)
     return (
-      <main className="wrap">
-        <div className="top">
-          <img src="/logo.png" alt="Hiraga Restaurant" />
-        </div>
-        <form className="panel" onSubmit={login}>
-          <h2 style={{ marginTop: 0 }}>Admin sign in</h2>
-          <input
-            type="email"
-            required
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            type="password"
-            required
-            placeholder="Password"
-            value={pw}
-            onChange={(e) => setPw(e.target.value)}
-          />
-          <button className="btn">Sign in</button>
-          <p className="err">{msg.text}</p>
-        </form>
-      </main>
+      <StaffLoginForm
+        title="Admin & Manager Sign In"
+        subtitle="Full administrative control for Hiraga Restaurant."
+        icon="⚙️"
+        lang="en"
+        onLoginSuccess={(s) => setSession(s)}
+      />
     );
 
   return (
@@ -442,6 +428,13 @@ create policy "admin write staff" on staff for all to authenticated using (true)
           <a href="/waiter" className="btn sm" style={{ background: '#8b5cf6', color: '#fff' }}>
             🛎️ Waiter Desk
           </a>
+          <button
+            className="btn sm o"
+            onClick={() => setShowSecurityModal(true)}
+            title="Change Password & 2FA"
+          >
+            🔑 Security & Password
+          </button>
           <a href="/" style={{ color: 'var(--o)', fontSize: '.9rem' }}>
             View menu
           </a>
@@ -1239,6 +1232,14 @@ create policy "admin write staff" on staff for all to authenticated using (true)
           </div>
         )}
       </div>
+
+      {/* 100% Free Staff Security, Password Change & 2FA Modal */}
+      <StaffSecurityModal
+        isOpen={showSecurityModal}
+        onClose={() => setShowSecurityModal(false)}
+        session={session}
+        lang="en"
+      />
     </main>
   );
 }

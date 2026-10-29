@@ -9,13 +9,13 @@ import {
   ORDER_STATUSES,
 } from '../../lib/orders';
 import { playChime } from '../../lib/audio';
+import StaffLoginForm from '../../components/StaffLoginForm';
+import StaffSecurityModal from '../../components/StaffSecurityModal';
 
 export default function CashierPage() {
   const [session, setSession] = useState(undefined);
-  const [email, setEmail] = useState('');
-  const [pw, setPw] = useState('');
-  const [loginMsg, setLoginMsg] = useState({ text: '', bad: false });
-  const [busyLogin, setBusyLogin] = useState(false);
+  const [lang, setLang] = useState('am');
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
 
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState('pending'); // 'pending' | 'kitchen' | 'ready' | 'completed' | 'all'
@@ -198,60 +198,21 @@ export default function CashierPage() {
     );
   }
 
-  // If not signed in: Email & Password Cashier Sign-in Form
+  // If not signed in: Free Staff Login with Password, Email OTP, or 2FA
   if (!session) {
     return (
-      <main className="wrap" style={{ maxWidth: 440, paddingTop: 60 }}>
-        <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <img src="/logo.png" alt="Hiraga" style={{ width: 140, height: 'auto', marginBottom: 12 }} />
-          <h2 style={{ margin: '0 0 6px', color: 'var(--o)' }}>💵 Cashier Desk Sign In</h2>
-          <p className="sm">Restricted Area. Authorized cashier staff sign-in.</p>
-        </div>
-
-        <form className="panel" onSubmit={handleLogin}>
-          <label style={{ fontSize: '.88rem', fontWeight: 600 }}>Cashier Email Address:</label>
-          <input
-            type="email"
-            required
-            autoFocus
-            placeholder="cashier@restaurant.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <label style={{ fontSize: '.88rem', fontWeight: 600, marginTop: 8, display: 'block' }}>
-            Password:
-          </label>
-          <input
-            type="password"
-            required
-            placeholder="Password"
-            value={pw}
-            onChange={(e) => setPw(e.target.value)}
-          />
-
-          {loginMsg.text && (
-            <p className={loginMsg.bad ? 'err' : 'ok'} style={{ margin: '8px 0', fontSize: '.88rem' }}>
-              {loginMsg.text}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            className="btn o"
-            style={{ width: '100%', marginTop: 12, padding: 12, fontSize: '1.02rem' }}
-            disabled={busyLogin}
-          >
-            {busyLogin ? 'Signing in...' : 'Sign In to Cashier Desk'}
-          </button>
-        </form>
-
-        <div style={{ textAlign: 'center', marginTop: 14 }}>
-          <a href="/" style={{ color: 'var(--mu)', fontSize: '.88rem', textDecoration: 'none' }}>
-            ← Back to Customer Menu
-          </a>
-        </div>
-      </main>
+      <StaffLoginForm
+        title={lang === 'am' ? 'የካሼር መግቢያ' : 'Cashier Desk Sign In'}
+        subtitle={
+          lang === 'am'
+            ? 'የተፈቀደላቸው የካሼር ሰራተኞች ብቻ'
+            : 'Restricted Area. Authorized cashier staff sign-in.'
+        }
+        icon="💵"
+        lang={lang}
+        onLangChange={setLang}
+        onLoginSuccess={(s) => setSession(s)}
+      />
     );
   }
 
@@ -325,6 +286,13 @@ export default function CashierPage() {
           </button>
           <button className="btn sm" onClick={() => setShowPOS(true)}>
             + New Walk-in Order
+          </button>
+          <button
+            className="btn sm o"
+            onClick={() => setShowSecurityModal(true)}
+            title="Change Password & 2FA"
+          >
+            🔑 {lang === 'am' ? 'የይለፍ ቃልና ደህንነት' : 'Security & Password'}
           </button>
           <a href="/kitchen" className="btn sm x">
             👨‍🍳 Kitchen KDS
@@ -895,6 +863,14 @@ export default function CashierPage() {
           </div>
         </div>
       )}
+
+      {/* 100% Free Staff Security, Password Change & 2FA Modal */}
+      <StaffSecurityModal
+        isOpen={showSecurityModal}
+        onClose={() => setShowSecurityModal(false)}
+        session={session}
+        lang={lang}
+      />
     </main>
   );
 }

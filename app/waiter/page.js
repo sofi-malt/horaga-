@@ -4,14 +4,13 @@ import { supabase } from '../../lib/supabase';
 import { fetchOrders, updateOrder, createOrder, subscribeToOrders } from '../../lib/orders';
 import { playChime } from '../../lib/audio';
 import { getDictionary } from '../../lib/translations';
+import StaffLoginForm from '../../components/StaffLoginForm';
+import StaffSecurityModal from '../../components/StaffSecurityModal';
 
 export default function WaiterPage() {
   const [session, setSession] = useState(undefined);
-  const [email, setEmail] = useState('');
-  const [pw, setPw] = useState('');
-  const [busyLogin, setBusyLogin] = useState(false);
-  const [loginMsg, setLoginMsg] = useState({ text: '', bad: false });
   const [lang, setLang] = useState('am'); // Default to Amharic for local staff
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
   const T = getDictionary(lang);
 
   const [orders, setOrders] = useState([]);
@@ -196,95 +195,21 @@ export default function WaiterPage() {
     );
   }
 
-  // 2. Authentication Screen
+  // 2. Authentication Screen: Free Staff Login with Password, Email OTP, or 2FA
   if (!session) {
     return (
-      <main className="wrap" style={{ maxWidth: 440, margin: '40px auto', padding: '0 16px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div
-            style={{
-              fontSize: '3rem',
-              background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              marginBottom: 8,
-            }}
-          >
-            🛎️
-          </div>
-          <h1 style={{ fontSize: '1.6rem', margin: '0 0 6px' }}>
-            {lang === 'am' ? 'የአስተናጋጅ ገጽ' : 'Waiter Service Desk'}
-          </h1>
-          <p className="sm" style={{ margin: 0, color: 'var(--mu)' }}>
-            {lang === 'am'
-              ? 'በሆቴሉ ስራ አስኪያጅ የተሰጠዎትን ኢሜይል እና የይለፍ ቃል ያስገቡ'
-              : 'Sign in with your staff account created by the manager'}
-          </p>
-        </div>
-
-        <form className="panel" onSubmit={handleLogin} style={{ padding: 24 }}>
-          <label style={{ fontSize: '.85rem', color: 'var(--mu)', display: 'block', marginBottom: 4 }}>
-            {lang === 'am' ? 'የሰራተኛ ኢሜይል' : 'Staff Email'}
-          </label>
-          <input
-            type="email"
-            required
-            placeholder="waiter@hiraga.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{ width: '100%', marginBottom: 14 }}
-          />
-
-          <label style={{ fontSize: '.85rem', color: 'var(--mu)', display: 'block', marginBottom: 4 }}>
-            {lang === 'am' ? 'የይለፍ ቃል' : 'Password'}
-          </label>
-          <input
-            type="password"
-            required
-            placeholder="••••••••"
-            value={pw}
-            onChange={(e) => setPw(e.target.value)}
-            style={{ width: '100%', marginBottom: 16 }}
-          />
-
-          <button
-            type="submit"
-            className="btn"
-            disabled={busyLogin}
-            style={{
-              width: '100%',
-              padding: '12px',
-              fontSize: '1rem',
-              background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-              color: '#fff',
-            }}
-          >
-            {busyLogin ? 'Signing in...' : lang === 'am' ? 'ግባ' : 'Sign In'}
-          </button>
-
-          {loginMsg.text && (
-            <p className={loginMsg.bad ? 'err' : 'ok'} style={{ marginTop: 12, textAlign: 'center' }}>
-              {loginMsg.text}
-            </p>
-          )}
-
-          <div style={{ textAlign: 'center', marginTop: 16 }}>
-            <button
-              type="button"
-              onClick={() => setLang(lang === 'am' ? 'en' : 'am')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--mu)',
-                fontSize: '.82rem',
-                cursor: 'pointer',
-              }}
-            >
-              🌐 {lang === 'am' ? 'Switch to English' : 'ወደ አማርኛ ቀይር'}
-            </button>
-          </div>
-        </form>
-      </main>
+      <StaffLoginForm
+        title={lang === 'am' ? 'የአስተናጋጅ ገጽ መግቢያ' : 'Waiter Service Desk Sign In'}
+        subtitle={
+          lang === 'am'
+            ? 'በሆቴሉ ስራ አስኪያጅ የተሰጠዎትን መለያ ያስገቡ'
+            : 'Sign in with your staff account created by the manager'
+        }
+        icon="🛎️"
+        lang={lang}
+        onLangChange={setLang}
+        onLoginSuccess={(s) => setSession(s)}
+      />
     );
   }
 
@@ -362,6 +287,15 @@ export default function WaiterPage() {
             style={{ fontSize: '.8rem' }}
           >
             {soundEnabled ? '🔔 Sound ON' : '🔕 Sound OFF'}
+          </button>
+
+          <button
+            onClick={() => setShowSecurityModal(true)}
+            className="btn sm o"
+            style={{ fontSize: '.8rem' }}
+            title="Change Password & 2FA"
+          >
+            🔑 {lang === 'am' ? 'የይለፍ ቃልና ደህንነት' : 'Security'}
           </button>
 
           <button
@@ -985,6 +919,14 @@ export default function WaiterPage() {
           </div>
         </div>
       )}
+
+      {/* 100% Free Staff Security, Password Change & 2FA Modal */}
+      <StaffSecurityModal
+        isOpen={showSecurityModal}
+        onClose={() => setShowSecurityModal(false)}
+        session={session}
+        lang={lang}
+      />
     </main>
   );
 }
