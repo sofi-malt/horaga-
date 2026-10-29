@@ -48,7 +48,102 @@ export default function Admin() {
   const [st, setSt] = useState({});
   const [copiedSql, setCopiedSql] = useState(false);
 
+  // Staff accounts state
+  const [staffList, setStaffList] = useState([]);
+  const [staffName, setStaffName] = useState('');
+  const [staffEmail, setStaffEmail] = useState('');
+  const [staffPassword, setStaffPassword] = useState('');
+  const [staffRole, setStaffRole] = useState('waiter'); // 'chef', 'waiter', 'cashier', 'manager'
+  const [staffPhone, setStaffPhone] = useState('');
+  const [busyStaff, setBusyStaff] = useState(false);
+  const [staffMsg, setStaffMsg] = useState({ text: '', bad: false });
+  const [staffFilter, setStaffFilter] = useState('all');
+
   const say = (text, bad = false) => setMsg({ text, bad });
+
+  const loadStaff = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/staff');
+      const data = await res.json();
+      if (data?.staff) setStaffList(data.staff);
+    } catch (e) {
+      console.warn('Failed to load staff list:', e);
+    }
+  }, []);
+
+  const createStaffAccount = async (e) => {
+    e.preventDefault();
+    if (!staffName.trim() || !staffEmail.trim() || !staffPassword.trim()) {
+      setStaffMsg({ text: 'Please fill in name, email, and password.', bad: true });
+      return;
+    }
+    if (staffPassword.length < 6) {
+      setStaffMsg({ text: 'Password must be at least 6 characters.', bad: true });
+      return;
+    }
+    setBusyStaff(true);
+    setStaffMsg({ text: '', bad: false });
+    try {
+      const res = await fetch('/api/admin/staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: staffName,
+          email: staffEmail,
+          password: staffPassword,
+          role: staffRole,
+          phone: staffPhone,
+        }),
+      });
+      const data = await res.json();
+      setBusyStaff(false);
+      if (!res.ok || data.error) {
+        setStaffMsg({ text: data.error || 'Failed to create staff account', bad: true });
+      } else {
+        setStaffMsg({
+          text: `✓ Account created successfully for ${staffName} (${staffRole})!`,
+          bad: false,
+        });
+        setStaffName('');
+        setStaffEmail('');
+        setStaffPassword('');
+        setStaffPhone('');
+        loadStaff();
+      }
+    } catch (err) {
+      setBusyStaff(false);
+      setStaffMsg({ text: err.message || 'Network error', bad: true });
+    }
+  };
+
+  const toggleStaffStatus = async (staff) => {
+    try {
+      const res = await fetch('/api/admin/staff', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: staff.id, active: !staff.active }),
+      });
+      if (res.ok) {
+        setStaffList(staffList.map((s) => (s.id === staff.id ? { ...s, active: !s.active } : s)));
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  };
+
+  const deleteStaffMember = async (staff) => {
+    if (!window.confirm(`Are you sure you want to remove ${staff.name} (${staff.role})?`)) return;
+    try {
+      const res = await fetch(`/api/admin/staff?id=${staff.id}&auth_id=${staff.auth_user_id || ''}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setStaffList(staffList.filter((s) => s.id !== staff.id));
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -74,8 +169,11 @@ export default function Admin() {
   }, []);
 
   useEffect(() => {
-    if (session) load();
-  }, [session, load]);
+    if (session) {
+      load();
+      loadStaff();
+    }
+  }, [session, load, loadStaff]);
 
   const login = async (e) => {
     e.preventDefault();
@@ -271,7 +369,22 @@ alter table settings add column if not exists kitchen_pin text default '1234';
 insert into storage.buckets (id, name, public) values ('receipts', 'receipts', true) on conflict (id) do nothing;
 create policy "public read receipts" on storage.objects for select using (bucket_id = 'receipts');
 create policy "public upload receipts" on storage.objects for insert with check (bucket_id = 'receipts');
-create policy "public update receipts" on storage.objects for update using (bucket_id = 'receipts');`;
+create policy "public update receipts" on storage.objects for update using (bucket_id = 'receipts');
+
+create table if not exists staff (
+  id bigint generated always as identity primary key,
+  auth_user_id uuid,
+  name text not null,
+  email text not null unique,
+  role text not null default 'waiter',
+  phone text,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table staff enable row level security;
+create policy "public read staff" on staff for select using (true);
+create policy "admin write staff" on staff for all to authenticated using (true) with check (true);`;
 
   const copySql = () => {
     navigator.clipboard?.writeText(ordersSql);
@@ -325,6 +438,9 @@ create policy "public update receipts" on storage.objects for update using (buck
           </a>
           <a href="/kitchen" className="btn sm" style={{ background: 'var(--b)', color: '#fff' }}>
             👨‍🍳 Kitchen KDS
+          </a>
+          <a href="/waiter" className="btn sm" style={{ background: '#8b5cf6', color: '#fff' }}>
+            🛎️ Waiter Desk
           </a>
           <a href="/" style={{ color: 'var(--o)', fontSize: '.9rem' }}>
             View menu
@@ -537,6 +653,369 @@ create policy "public update receipts" on storage.objects for update using (buck
         ))}
       </div>
 
+      {/* Staff Management & Account Creation */}
+      <div className="panel" id="staff-section">
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 10,
+            marginBottom: 8,
+          }}
+        >
+          <h2 style={{ margin: 0 }}>👥 Staff & Account Management (የሰራተኞች መለያ መፍጠሪያ)</h2>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <a href="/cashier" target="_blank" className="btn sm o">
+              💵 Cashier Desk
+            </a>
+            <a
+              href="/kitchen"
+              target="_blank"
+              className="btn sm"
+              style={{ background: 'var(--b)', color: '#fff' }}
+            >
+              👨‍🍳 Kitchen KDS
+            </a>
+            <a
+              href="/waiter"
+              target="_blank"
+              className="btn sm"
+              style={{ background: '#8b5cf6', color: '#fff' }}
+            >
+              🛎️ Waiter Desk
+            </a>
+          </div>
+        </div>
+        <p className="sm" style={{ color: 'var(--mu)', marginTop: 0 }}>
+          Create and manage accounts for your Head Chef, Waiters, and Cashiers. Staff can sign in to their respective portals with their email and password.
+        </p>
+
+        {/* Staff Creation Form */}
+        <form
+          onSubmit={createStaffAccount}
+          style={{
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid var(--bd)',
+            borderRadius: 14,
+            padding: 16,
+            marginBottom: 20,
+          }}
+        >
+          <b style={{ fontSize: '1rem', display: 'block', marginBottom: 12, color: 'var(--fg)' }}>
+            ➕ Create New Staff Account (አዲስ የሰራተኛ መለያ ፍጠር)
+          </b>
+
+          <div className="row">
+            <div style={{ flex: 1 }}>
+              <label
+                style={{
+                  fontSize: '.8rem',
+                  color: 'var(--mu)',
+                  display: 'block',
+                  marginBottom: 4,
+                }}
+              >
+                Staff Full Name (ሙሉ ስም) *
+              </label>
+              <input
+                required
+                placeholder="e.g. Abebe Bikila"
+                value={staffName}
+                onChange={(e) => setStaffName(e.target.value)}
+              />
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <label
+                style={{
+                  fontSize: '.8rem',
+                  color: 'var(--mu)',
+                  display: 'block',
+                  marginBottom: 4,
+                }}
+              >
+                Role / Position (የስራ ድርሻ) *
+              </label>
+              <select
+                value={staffRole}
+                onChange={(e) => setStaffRole(e.target.value)}
+                style={{
+                  background: 'var(--bg)',
+                  color: 'var(--fg)',
+                  border: '1px solid var(--bd)',
+                  borderRadius: 8,
+                  padding: '9px 12px',
+                  width: '100%',
+                  fontSize: '.95rem',
+                }}
+              >
+                <option value="chef">👨‍🍳 Head Chef / Kitchen (KDS)</option>
+                <option value="waiter">🛎️ Waiter / Table Service</option>
+                <option value="cashier">💵 Cashier Desk / POS</option>
+                <option value="manager">👔 Hotel Manager / Admin</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="row" style={{ marginTop: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label
+                style={{
+                  fontSize: '.8rem',
+                  color: 'var(--mu)',
+                  display: 'block',
+                  marginBottom: 4,
+                }}
+              >
+                Email Address (መግቢያ ኢሜይል) *
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="staff@hiraga.com"
+                value={staffEmail}
+                onChange={(e) => setStaffEmail(e.target.value)}
+              />
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <label
+                style={{
+                  fontSize: '.8rem',
+                  color: 'var(--mu)',
+                  display: 'block',
+                  marginBottom: 4,
+                }}
+              >
+                Password (የይለፍ ቃል - ቢያንስ 6 ፊደል) *
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={staffPassword}
+                onChange={(e) => setStaffPassword(e.target.value)}
+              />
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <label
+                style={{
+                  fontSize: '.8rem',
+                  color: 'var(--mu)',
+                  display: 'block',
+                  marginBottom: 4,
+                }}
+              >
+                Phone Number (ስልክ ቁጥር - አማራጭ)
+              </label>
+              <input
+                placeholder="0911223344"
+                value={staffPhone}
+                onChange={(e) => setStaffPhone(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: 14,
+              flexWrap: 'wrap',
+              gap: 10,
+            }}
+          >
+            <button
+              type="submit"
+              disabled={busyStaff}
+              className="btn o"
+              style={{ padding: '10px 20px', fontWeight: 600 }}
+            >
+              {busyStaff ? 'Creating account...' : '➕ Create Staff Account'}
+            </button>
+            {staffMsg.text && (
+              <span
+                className={staffMsg.bad ? 'err' : 'ok'}
+                style={{ fontSize: '.9rem', fontWeight: 600 }}
+              >
+                {staffMsg.text}
+              </span>
+            )}
+          </div>
+        </form>
+
+        {/* Staff Directory */}
+        <div>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 10,
+              flexWrap: 'wrap',
+              gap: 8,
+            }}
+          >
+            <b style={{ fontSize: '1rem' }}>
+              📋 Staff Directory ({staffList.length}) (የተመዘገቡ ሰራተኞች)
+            </b>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {['all', 'chef', 'waiter', 'cashier'].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setStaffFilter(r)}
+                  className={`btn sm ${staffFilter === r ? 'o' : 'x'}`}
+                  style={{ fontSize: '.75rem', padding: '2px 8px' }}
+                >
+                  {r === 'all'
+                    ? 'All'
+                    : r === 'chef'
+                    ? '👨‍🍳 Chefs'
+                    : r === 'waiter'
+                    ? '🛎️ Waiters'
+                    : '💵 Cashiers'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {staffList.filter((s) => staffFilter === 'all' || s.role === staffFilter).length === 0 ? (
+            <p className="empty" style={{ margin: '14px 0' }}>
+              No staff members registered in this category yet. Add your first staff member above.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {staffList
+                .filter((s) => staffFilter === 'all' || s.role === staffFilter)
+                .map((member) => (
+                  <div
+                    key={member.id}
+                    className="al"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid var(--bd)',
+                      borderRadius: 10,
+                      padding: '10px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span
+                        style={{
+                          fontSize: '1.4rem',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          padding: 8,
+                          borderRadius: 8,
+                        }}
+                      >
+                        {member.role === 'chef'
+                          ? '👨‍🍳'
+                          : member.role === 'waiter'
+                          ? '🛎️'
+                          : member.role === 'cashier'
+                          ? '💵'
+                          : '👔'}
+                      </span>
+                      <div>
+                        <b>{member.name}</b>
+                        <div
+                          style={{
+                            fontSize: '.82rem',
+                            color: 'var(--mu)',
+                            display: 'flex',
+                            gap: 8,
+                          }}
+                        >
+                          <span>{member.email}</span>
+                          {member.phone && <span>• 📞 {member.phone}</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span
+                        style={{
+                          fontSize: '.75rem',
+                          fontWeight: 700,
+                          padding: '3px 10px',
+                          borderRadius: 999,
+                          textTransform: 'uppercase',
+                          background:
+                            member.role === 'chef'
+                              ? 'rgba(59, 130, 246, 0.2)'
+                              : member.role === 'waiter'
+                              ? 'rgba(139, 92, 246, 0.2)'
+                              : member.role === 'cashier'
+                              ? 'rgba(16, 185, 129, 0.2)'
+                              : 'rgba(245, 158, 11, 0.2)',
+                          color:
+                            member.role === 'chef'
+                              ? '#60a5fa'
+                              : member.role === 'waiter'
+                              ? '#a78bfa'
+                              : member.role === 'cashier'
+                              ? '#34d399'
+                              : '#fbbf24',
+                          border: `1px solid ${
+                            member.role === 'chef'
+                              ? '#3b82f6'
+                              : member.role === 'waiter'
+                              ? '#8b5cf6'
+                              : member.role === 'cashier'
+                              ? '#10b981'
+                              : '#f59e0b'
+                          }`,
+                        }}
+                      >
+                        {member.role === 'chef'
+                          ? 'Head Chef'
+                          : member.role === 'waiter'
+                          ? 'Waiter'
+                          : member.role === 'cashier'
+                          ? 'Cashier'
+                          : 'Manager'}
+                      </span>
+
+                      <button
+                        onClick={() => toggleStaffStatus(member)}
+                        className={`btn sm ${member.active ? 'ok' : 'x'}`}
+                        style={{
+                          fontSize: '.75rem',
+                          padding: '3px 8px',
+                          background: member.active
+                            ? 'rgba(34, 197, 94, 0.15)'
+                            : 'rgba(239, 68, 68, 0.15)',
+                          color: member.active ? '#4ade80' : '#f87171',
+                          border: `1px solid ${member.active ? '#22c55e' : '#ef4444'}`,
+                        }}
+                      >
+                        {member.active ? '● On Duty' : '○ Off Duty'}
+                      </button>
+
+                      <button
+                        onClick={() => deleteStaffMember(member)}
+                        className="btn sm x"
+                        style={{ fontSize: '.75rem', padding: '3px 8px' }}
+                        title="Remove staff member"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Restaurant Info & Payment Accounts */}
       <form className="panel" onSubmit={saveInfo}>
         <h2 style={{ marginTop: 0 }}>Restaurant & Payment Accounts</h2>
@@ -576,16 +1055,7 @@ create policy "public update receipts" on storage.objects for update using (buck
           />
         </div>
 
-        <h3 style={{ fontSize: '1.1rem', color: 'var(--g)', margin: '14px 0 6px' }}>
-          🔒 Staff Authentication (Cashier & Head Chef)
-        </h3>
-        <p className="sm">
-          The Cashier Desk (<code>/cashier</code>) and Kitchen Display (<code>/kitchen</code>) are protected and require staff email &amp; password sign-in. To add staff accounts, go to your Supabase Dashboard &gt; <b>Authentication</b> &gt; <b>Users</b> &gt; <b>Add user</b>.
-        </p>
-        <div style={{ display: 'flex', gap: 10, margin: '8px 0 14px' }}>
-          <a href="/cashier" className="btn sm o">Open Cashier Station</a>
-          <a href="/kitchen" className="btn sm" style={{ background: 'var(--b)', color: '#fff' }}>Open Kitchen KDS</a>
-        </div>
+
 
         <h3 style={{ fontSize: '1.1rem', margin: '14px 0 6px' }}>General Information</h3>
         <div className="row">

@@ -63,3 +63,21 @@ drop policy if exists "public upload receipts" on storage.objects;
 create policy "public upload receipts" on storage.objects for insert with check (bucket_id = 'receipts');
 drop policy if exists "public update receipts" on storage.objects;
 create policy "public update receipts" on storage.objects for update using (bucket_id = 'receipts');
+
+-- 6. STAFF & ACTORS DIRECTORY (Hotel Manager, Chef, Waiter, Cashier)
+create table if not exists staff (
+  id bigint generated always as identity primary key,
+  auth_user_id uuid,
+  name text not null,
+  email text not null unique,
+  role text not null default 'waiter', -- 'chef', 'waiter', 'cashier', 'manager'
+  phone text,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table staff enable row level security;
+drop policy if exists "public read staff" on staff;
+create policy "public read staff" on staff for select using (true);
+drop policy if exists "admin write staff" on staff;
+create policy "admin write staff" on staff for all to authenticated using (true) with check (true);

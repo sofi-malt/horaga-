@@ -97,11 +97,30 @@ create table if not exists orders (
   updated_at timestamptz not null default now()
 );
 
--- 5. ROW LEVEL SECURITY (RLS) POLICIES
+-- 5. STAFF & ACTORS DIRECTORY (Hotel Manager, Chef, Waiter, Cashier)
+create table if not exists staff (
+  id bigint generated always as identity primary key,
+  auth_user_id uuid,
+  name text not null,
+  email text not null unique,
+  role text not null default 'waiter', -- 'chef', 'waiter', 'cashier', 'manager'
+  phone text,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+-- 6. ROW LEVEL SECURITY (RLS) POLICIES
 alter table categories enable row level security;
 alter table items enable row level security;
 alter table settings enable row level security;
 alter table orders enable row level security;
+alter table staff enable row level security;
+
+-- Staff policies
+drop policy if exists "public read staff" on staff;
+create policy "public read staff" on staff for select using (true);
+drop policy if exists "admin write staff" on staff;
+create policy "admin write staff" on staff for all to authenticated using (true) with check (true);
 
 -- Category policies
 drop policy if exists "public read categories" on categories;
