@@ -19,9 +19,14 @@ create table if not exists orders (
   status text not null default 'pending_payment', -- 'pending_payment', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled'
   rejection_reason text,
   notes text,
+  waiter_name text,
+  confirmed_by text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table orders add column if not exists waiter_name text;
+alter table orders add column if not exists confirmed_by text;
 
 -- 2. ENABLE ROW LEVEL SECURITY & POLICIES
 alter table orders enable row level security;

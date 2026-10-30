@@ -33,6 +33,14 @@ export default function CashierPage() {
   const [posItems, setPosItems] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [posTotal, setPosTotal] = useState(0);
+  const [posWaiter, setPosWaiter] = useState('');
+
+  // Waiter assignment & ambiguity resolution state
+  const [waiters, setWaiters] = useState([]);
+  const [waiterFilter, setWaiterFilter] = useState('all');
+  const [assigningWaiterOrder, setAssigningWaiterOrder] = useState(null);
+  const [selectedWaiterName, setSelectedWaiterName] = useState('');
+  const [customWaiterInput, setCustomWaiterInput] = useState('');
 
   // Check auth session
   useEffect(() => {
@@ -78,6 +86,14 @@ export default function CashierPage() {
       .eq('available', true)
       .order('name')
       .then(({ data }) => setMenuItems(data || []));
+
+    // Fetch registered waiters list for assignment
+    supabase
+      .from('staff')
+      .select('id, name, email')
+      .eq('role', 'waiter')
+      .order('name')
+      .then(({ data }) => setWaiters(data || []));
 
     // Listen to real-time order updates
     const unsubscribe = subscribeToOrders(({ event, order, orders: allOrders }) => {
@@ -125,6 +141,18 @@ export default function CashierPage() {
     });
     setRejectingOrder(null);
     setRejectReason('');
+    loadOrders();
+  };
+
+  // Waiter Assignment
+  const handleSaveWaiterAssignment = async (e) => {
+    e.preventDefault();
+    if (!assigningWaiterOrder) return;
+    const finalWaiter = (customWaiterInput.trim() || selectedWaiterName.trim() || null);
+    await updateOrder(assigningWaiterOrder.id, { waiter_name: finalWaiter });
+    setAssigningWaiterOrder(null);
+    setSelectedWaiterName('');
+    setCustomWaiterInput('');
     loadOrders();
   };
 
@@ -179,11 +207,14 @@ export default function CashierPage() {
       payment_method: 'cash',
       payment_status: 'confirmed',
       status: 'confirmed',
+      waiter_name: posWaiter.trim() || null,
+      confirmed_by: session.user?.email || 'cashier',
     });
 
     setShowPOS(false);
     setPosTable('');
     setPosCustomer('');
+    setPosWaiter('');
     setPosItems([]);
     setPosTotal(0);
     loadOrders();
@@ -230,12 +261,18 @@ export default function CashierPage() {
       return true; // all
     })
     .filter((o) => {
+      if (waiterFilter === 'all') return true;
+      if (waiterFilter === 'unassigned') return !o.waiter_name;
+      return o.waiter_name?.toLowerCase() === waiterFilter.toLowerCase();
+    })
+    .filter((o) => {
       if (!search) return true;
       const term = search.toLowerCase();
       return (
         (o.order_number && o.order_number.toLowerCase().includes(term)) ||
         (o.table_number && o.table_number.toLowerCase().includes(term)) ||
         (o.customer_name && o.customer_name.toLowerCase().includes(term)) ||
+        (o.waiter_name && o.waiter_name.toLowerCase().includes(term)) ||
         (o.transaction_ref && o.transaction_ref.toLowerCase().includes(term))
       );
     });
@@ -395,12 +432,28 @@ export default function CashierPage() {
           </button>
         </div>
 
-        <input
-          style={{ maxWidth: 300, margin: 0 }}
-          placeholder="Search by Order #, Table, Txn..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <div style={{ display: 'flex', gap: 8, flex: '1 1 340px' }}>
+          <select
+            value={waiterFilter}
+            onChange={(e) => setWaiterFilter(e.target.value)}
+            style={{ maxWidth: 160, margin: 0, fontSize: '.85rem' }}
+            title="Filter by assigned waiter"
+          >
+            <option value="all">🛎️ All Waiters</option>
+            <option value="unassigned">⚠️ Unassigned</option>
+            {waiters.map((w) => (
+              <option key={w.id} value={w.name}>
+                🛎️ {w.name}
+              </option>
+            ))}
+          </select>
+          <input
+            style={{ flex: 1, margin: 0 }}
+            placeholder="Search by Order #, Table, Waiter..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
       </div>
 
       {/* Orders Grid */}
@@ -458,7 +511,7 @@ export default function CashierPage() {
                   )}
 
                   {/* Status Badge */}
-                  <div style={{ marginBottom: 12 }}>
+                  <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span
                       className={`badge ${
                         ord.status === 'pending_payment'
@@ -476,6 +529,41 @@ export default function CashierPage() {
                     >
                       ● {ORDER_STATUSES[ord.status]?.en || ord.status}
                     </span>
+                    {ord.confirmed_by && (
+                      <span className="sm" style={{ fontSize: '.72rem', color: 'var(--mu)' }}>
+                        Verified by: {ord.confirmed_by}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Waiter Attribution Badge & Quick Assignment */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '6px 10px',
+                      borderRadius: 8,
+                      marginBottom: 10,
+                      background: ord.waiter_name ? 'rgba(139, 92, 246, 0.12)' : 'rgba(239, 68, 68, 0.1)',
+                      border: `1px solid ${ord.waiter_name ? 'rgba(139, 92, 246, 0.3)' : 'rgba(239, 68, 68, 0.25)'}`,
+                    }}
+                  >
+                    <span style={{ fontSize: '.84rem', fontWeight: 600, color: ord.waiter_name ? '#c4b5fd' : '#fca5a5' }}>
+                      🛎️ {ord.waiter_name ? `Waiter: ${ord.waiter_name}` : '⚠️ No Waiter Assigned'}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn sm x"
+                      style={{ fontSize: '.74rem', padding: '2px 8px' }}
+                      onClick={() => {
+                        setAssigningWaiterOrder(ord);
+                        setSelectedWaiterName(ord.waiter_name || '');
+                        setCustomWaiterInput('');
+                      }}
+                    >
+                      {ord.waiter_name ? 'Change Waiter' : '➕ Assign Waiter'}
+                    </button>
                   </div>
 
                   {/* Ordered Items List */}
@@ -726,6 +814,24 @@ export default function CashierPage() {
                   />
                 </div>
 
+                <div style={{ marginTop: 8, marginBottom: 6 }}>
+                  <label style={{ fontSize: '.82rem', color: 'var(--mu)', display: 'block', marginBottom: 3 }}>
+                    Assign Waiter for this Order (አስተናጋጅ ምረጥ):
+                  </label>
+                  <select
+                    value={posWaiter}
+                    onChange={(e) => setPosWaiter(e.target.value)}
+                    style={{ width: '100%', margin: 0 }}
+                  >
+                    <option value="">Counter Walk-in (No Waiter)</option>
+                    {waiters.map((w) => (
+                      <option key={w.id} value={w.name}>
+                        🛎️ Waiter: {w.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div style={{ fontWeight: 700, margin: '10px 0 6px' }}>Select Dishes:</div>
                 <div
                   style={{
@@ -818,6 +924,74 @@ export default function CashierPage() {
         </div>
       )}
 
+      {/* Assign / Change Waiter Modal Popup */}
+      {assigningWaiterOrder && (
+        <div className="mod" onClick={() => setAssigningWaiterOrder(null)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
+            <div className="in">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '1.2rem' }}>
+                  🛎️ Assign Waiter to Order {assigningWaiterOrder.order_number}
+                </h3>
+                <button className="btn x sm" onClick={() => setAssigningWaiterOrder(null)}>
+                  ✕
+                </button>
+              </div>
+              <p className="sm" style={{ color: 'var(--mu)', marginTop: 4 }}>
+                Resolves waiter ambiguity for Table {assigningWaiterOrder.table_number}. The selected waiter is officially recorded as the server for this order.
+              </p>
+
+              <form onSubmit={handleSaveWaiterAssignment} style={{ marginTop: 14 }}>
+                <label style={{ fontSize: '.84rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                  Select from Registered Waiters:
+                </label>
+                <select
+                  value={selectedWaiterName}
+                  onChange={(e) => {
+                    setSelectedWaiterName(e.target.value);
+                    setCustomWaiterInput('');
+                  }}
+                  style={{ width: '100%', marginBottom: 12 }}
+                >
+                  <option value="">-- Choose Waiter --</option>
+                  {waiters.map((w) => (
+                    <option key={w.id} value={w.name}>
+                      🛎️ {w.name} ({w.email})
+                    </option>
+                  ))}
+                </select>
+
+                <label style={{ fontSize: '.84rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                  Or Type Custom Waiter Name:
+                </label>
+                <input
+                  placeholder="e.g. Dawit, Tigist..."
+                  value={customWaiterInput}
+                  onChange={(e) => {
+                    setCustomWaiterInput(e.target.value);
+                    setSelectedWaiterName('');
+                  }}
+                  style={{ width: '100%', marginBottom: 16 }}
+                />
+
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    className="btn x"
+                    onClick={() => setAssigningWaiterOrder(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn o" style={{ fontWeight: 600 }}>
+                    Save Waiter Assignment
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Printable Receipt Hidden Template */}
       {printableOrder && (
         <div id="printable-receipt">
@@ -826,6 +1000,7 @@ export default function CashierPage() {
             <div>Official Guest Receipt</div>
             <div>Order {printableOrder.order_number}</div>
             <div>Table: {printableOrder.table_number}</div>
+            <div>Server / Waiter: {printableOrder.waiter_name || 'Counter Staff'}</div>
             <div>Date: {new Date(printableOrder.created_at).toLocaleString()}</div>
           </div>
           <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />

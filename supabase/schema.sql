@@ -93,9 +93,15 @@ create table if not exists orders (
   status text not null default 'pending_payment', -- 'pending_payment', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled'
   rejection_reason text,
   notes text,
+  waiter_name text, -- Waiter responsible for this table
+  confirmed_by text, -- Cashier who confirmed or handled the payment
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Ensure columns exist if table is already created
+alter table orders add column if not exists waiter_name text;
+alter table orders add column if not exists confirmed_by text;
 
 -- 5. STAFF & ACTORS DIRECTORY (Hotel Manager, Chef, Waiter, Cashier)
 create table if not exists staff (

@@ -352,6 +352,11 @@ export default function KitchenPage() {
                       <div style={{ color: 'var(--o)', fontWeight: 700, fontSize: '1.1rem' }}>
                         {ord.order_number}
                       </div>
+                      {ord.waiter_name && (
+                        <div style={{ fontSize: '.86rem', color: '#a78bfa', fontWeight: 700, marginTop: 3 }}>
+                          🛎️ Waiter: {ord.waiter_name}
+                        </div>
+                      )}
                     </div>
 
                     {/* Timer Badge */}

@@ -145,6 +145,7 @@ export default function WaiterPage() {
     }
 
     setPosBusy(true);
+    const waiterIdentity = session.user?.user_metadata?.full_name || session.user?.email?.split('@')[0] || 'Waiter';
     const result = await createOrder({
       table_number: posTable.trim(),
       customer_name: posCustomer.trim() || 'Waiter Order',
@@ -153,7 +154,8 @@ export default function WaiterPage() {
       payment_method: 'cash',
       payment_status: 'pending',
       status: 'confirmed', // Sent straight to kitchen
-      notes: posNotes.trim() || 'Order taken by waiter',
+      waiter_name: waiterIdentity,
+      notes: posNotes.trim() || `Order taken by ${waiterIdentity}`,
     });
 
     setPosBusy(false);
@@ -483,6 +485,11 @@ export default function WaiterPage() {
                         <div style={{ fontSize: '.85rem', color: 'var(--mu)' }}>
                           {ord.order_number} {ord.customer_name ? `• ${ord.customer_name}` : ''}
                         </div>
+                        {ord.waiter_name && (
+                          <div style={{ fontSize: '.78rem', color: '#c4b5fd', fontWeight: 600, marginTop: 2 }}>
+                            🛎️ Server: {ord.waiter_name}
+                          </div>
+                        )}
                       </div>
                       <div
                         style={{
