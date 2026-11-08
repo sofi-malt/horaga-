@@ -1,5 +1,22 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import {
+  Users,
+  CheckCircle2,
+  Clock,
+  Plus,
+  Volume2,
+  VolumeX,
+  ShieldCheck,
+  LogOut,
+  Flame,
+  ShoppingBag,
+  AlertTriangle,
+  UtensilsCrossed,
+  X,
+  Check,
+  Search,
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { fetchOrders, updateOrder, createOrder, subscribeToOrders } from '../../lib/orders';
 import { playChime } from '../../lib/audio';
@@ -15,7 +32,7 @@ export default function WaiterPage() {
 
   const [orders, setOrders] = useState([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [activeTab, setActiveTab] = useState('ready'); // 'ready', 'preparing', 'completed', 'new_order'
+  const [activeTab, setActiveTab] = useState('ready'); // 'ready', 'preparing', 'completed'
   const [now, setNow] = useState(Date.now());
 
   // Waiter Taking Table Order POS state
@@ -26,6 +43,7 @@ export default function WaiterPage() {
   const [posItems, setPosItems] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [posBusy, setPosBusy] = useState(false);
+  const [dishSearch, setDishSearch] = useState('');
 
   // Check auth session
   useEffect(() => {
@@ -33,22 +51,6 @@ export default function WaiterPage() {
     const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => data.subscription.unsubscribe();
   }, []);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setBusyLogin(true);
-    setLoginMsg({ text: '', bad: false });
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password: pw,
-    });
-
-    setBusyLogin(false);
-    if (error) {
-      setLoginMsg({ text: error.message, bad: true });
-    }
-  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -191,13 +193,17 @@ export default function WaiterPage() {
   // 1. Loading State
   if (session === undefined) {
     return (
-      <main className="wrap" style={{ textAlign: 'center', padding: '60px 16px' }}>
-        <p className="empty">Checking waiter session...</p>
+      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+        <div style={{ textAlign: 'center', padding: 32 }}>
+          <div style={{ width: 44, height: 44, border: '3px solid #e2e8f0', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>Royal Hotel Waiter Desk</h3>
+          <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: '.88rem' }}>Authenticating server terminal...</p>
+        </div>
       </main>
     );
   }
 
-  // 2. Authentication Screen: Free Staff Login with Password, Email OTP, or 2FA
+  // 2. Authentication Screen
   if (!session) {
     return (
       <StaffLoginForm
@@ -207,7 +213,7 @@ export default function WaiterPage() {
             ? 'በሆቴሉ ስራ አስኪያጅ የተሰጠዎትን መለያ ያስገቡ'
             : 'Sign in with your staff account created by the manager'
         }
-        icon="🛎️"
+        icon={<Users size={28} color="#2563eb" />}
         lang={lang}
         onLangChange={setLang}
         onLoginSuccess={(s) => setSession(s)}
@@ -215,556 +221,334 @@ export default function WaiterPage() {
     );
   }
 
-  // 3. Authenticated Waiter Service Screen
+  const waiterName = session.user?.user_metadata?.full_name || session.user?.email?.split('@')[0] || 'Waiter';
+
   return (
-    <main className="wrap" style={{ maxWidth: 1100, padding: '16px 12px 80px' }}>
-      {/* Top Bar */}
-      <div
-        className="bar"
+    <div style={{ minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
+      {/* Top Header */}
+      <header
         style={{
+          background: '#0f172a',
+          color: '#ffffff',
+          padding: '16px 28px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: 12,
-          padding: '12px 16px',
-          background: 'var(--bg-panel, #121210)',
-          border: '1px solid var(--bd, #27272a)',
-          borderRadius: 14,
-          marginBottom: 18,
+          gap: 14,
+          boxShadow: '0 4px 20px rgba(15, 23, 42, 0.08)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: '1.6rem' }}>🛎️</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: '#7c3aed', display: 'grid', placeItems: 'center', color: '#ffffff' }}>
+            <Users size={22} />
+          </div>
           <div>
-            <b style={{ fontSize: '1.15rem' }}>
-              {lang === 'am' ? 'የአስተናጋጅ ገጽ' : 'Waiter Service Desk'}
-            </b>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-              <span
-                style={{
-                  fontSize: '.72rem',
-                  padding: '2px 8px',
-                  borderRadius: 999,
-                  background: 'rgba(139, 92, 246, 0.2)',
-                  color: '#a78bfa',
-                  border: '1px solid rgba(139, 92, 246, 0.3)',
-                  fontWeight: 600,
-                }}
-              >
-                🛎️ {session.user?.user_metadata?.full_name || session.user?.email}
-              </span>
-              <span
-                style={{
-                  fontSize: '.72rem',
-                  padding: '2px 6px',
-                  borderRadius: 999,
-                  background: 'rgba(34, 197, 94, 0.2)',
-                  color: '#4ade80',
-                  fontWeight: 600,
-                }}
-              >
-                ● {lang === 'am' ? 'ስራ ላይ' : 'On Duty'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#ffffff' }}>
+                {lang === 'am' ? 'የአስተናጋጅ አገልግሎት ገጽ' : 'Waiter Service Terminal'}
+              </h1>
+              <span style={{ fontSize: '.68rem', background: '#10b981', color: '#ffffff', padding: '2px 8px', borderRadius: 999, fontWeight: 700 }}>
+                ● ON DUTY
               </span>
             </div>
+            <span style={{ fontSize: '.76rem', color: '#94a3b8' }}>
+              Server: <b>{waiterName}</b> ({session.user?.email})
+            </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <button
             onClick={() => setShowPOS(true)}
-            className="btn sm"
-            style={{
-              background: 'linear-gradient(135deg, #10b981, #059669)',
-              color: '#fff',
-              fontWeight: 600,
-            }}
+            className="btn btn-primary btn-sm"
           >
-            ➕ {lang === 'am' ? 'አዲስ የጠረጴዛ ትዕዛዝ' : 'New Table Order'}
+            <Plus size={15} /> {lang === 'am' ? 'አዲስ የጠረጴዛ ትዕዛዝ' : 'New Table Order'}
           </button>
 
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className="btn sm o"
-            style={{ fontSize: '.8rem' }}
+            className="btn btn-secondary btn-sm"
+            style={{ background: soundEnabled ? '#eff6ff' : '#ffffff', color: soundEnabled ? '#2563eb' : '#64748b' }}
           >
-            {soundEnabled ? '🔔 Sound ON' : '🔕 Sound OFF'}
+            {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+            {soundEnabled ? 'Chime ON' : 'Muted'}
           </button>
 
-          <button
-            onClick={() => setShowSecurityModal(true)}
-            className="btn sm o"
-            style={{ fontSize: '.8rem' }}
-            title="Change Password & 2FA"
-          >
-            🔑 {lang === 'am' ? 'የይለፍ ቃልና ደህንነት' : 'Security'}
+          <button onClick={() => setShowSecurityModal(true)} className="btn btn-secondary btn-sm" title="2FA & Password">
+            <ShieldCheck size={15} /> Security
           </button>
 
           <button
             onClick={() => setLang(lang === 'am' ? 'en' : 'am')}
-            className="btn sm o"
-            style={{ fontSize: '.8rem' }}
+            className="btn btn-secondary btn-sm"
           >
-            {lang === 'am' ? 'EN' : 'አማ'}
+            {lang === 'am' ? 'English' : 'አማርኛ'}
           </button>
 
-          <button onClick={handleSignOut} className="btn sm x" style={{ fontSize: '.8rem' }}>
-            {lang === 'am' ? 'ውጣ' : 'Sign out'}
+          <button onClick={handleSignOut} className="btn btn-danger btn-sm">
+            <LogOut size={15} /> Sign Out
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-        <button
-          onClick={() => setActiveTab('ready')}
-          style={{
-            flex: '1 1 180px',
-            padding: '12px 16px',
-            borderRadius: 12,
-            border: activeTab === 'ready' ? '2px solid #8b5cf6' : '1px solid var(--bd)',
-            background: activeTab === 'ready' ? 'rgba(139, 92, 246, 0.15)' : 'var(--bg-panel)',
-            color: activeTab === 'ready' ? '#c4b5fd' : 'var(--fg)',
-            cursor: 'pointer',
-            textAlign: 'left',
-            fontWeight: 600,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <span>🍽️ {lang === 'am' ? 'ለመቅረብ የተዘጋጁ' : 'Ready to Serve'}</span>
-          <span
-            style={{
-              background: readyOrders.length > 0 ? '#ef4444' : 'rgba(255,255,255,0.1)',
-              color: '#fff',
-              fontSize: '.8rem',
-              padding: '2px 8px',
-              borderRadius: 999,
-              fontWeight: 700,
-            }}
+      {/* Main Waiter Workspace */}
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 20px' }}>
+        {/* Navigation Tabs */}
+        <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setActiveTab('ready')}
+            className={`btn ${activeTab === 'ready' ? 'btn-success' : 'btn-secondary'}`}
+            style={{ flex: '1 1 200px', justifyContent: 'space-between', padding: '12px 18px', fontSize: '.92rem' }}
           >
-            {readyOrders.length}
-          </span>
-        </button>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <UtensilsCrossed size={16} />
+              {lang === 'am' ? 'ለመቅረብ የተዘጋጁ ምግቦች' : 'Ready to Serve'}
+            </span>
+            <span style={{ background: readyOrders.length > 0 ? '#b91c1c' : 'rgba(0,0,0,0.08)', color: '#fff', fontSize: '.75rem', padding: '2px 8px', borderRadius: 999, fontWeight: 800 }}>
+              {readyOrders.length}
+            </span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('preparing')}
-          style={{
-            flex: '1 1 180px',
-            padding: '12px 16px',
-            borderRadius: 12,
-            border: activeTab === 'preparing' ? '2px solid #3b82f6' : '1px solid var(--bd)',
-            background: activeTab === 'preparing' ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-panel)',
-            color: activeTab === 'preparing' ? '#93c5fd' : 'var(--fg)',
-            cursor: 'pointer',
-            textAlign: 'left',
-            fontWeight: 600,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <span>👨‍🍳 {lang === 'am' ? 'በኩሽና በመዘጋጀት ላይ' : 'Cooking in Kitchen'}</span>
-          <span
-            style={{
-              background: 'rgba(59, 130, 246, 0.3)',
-              color: '#93c5fd',
-              fontSize: '.8rem',
-              padding: '2px 8px',
-              borderRadius: 999,
-              fontWeight: 700,
-            }}
+          <button
+            onClick={() => setActiveTab('preparing')}
+            className={`btn ${activeTab === 'preparing' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ flex: '1 1 200px', justifyContent: 'space-between', padding: '12px 18px', fontSize: '.92rem' }}
           >
-            {preparingOrders.length}
-          </span>
-        </button>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Flame size={16} />
+              {lang === 'am' ? 'በኩሽና በመዘጋጀት ላይ' : 'Cooking in Kitchen'}
+            </span>
+            <span className="badge badge-blue">
+              {preparingOrders.length}
+            </span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('completed')}
-          style={{
-            flex: '1 1 180px',
-            padding: '12px 16px',
-            borderRadius: 12,
-            border: activeTab === 'completed' ? '2px solid #10b981' : '1px solid var(--bd)',
-            background: activeTab === 'completed' ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-panel)',
-            color: activeTab === 'completed' ? '#6ee7b7' : 'var(--fg)',
-            cursor: 'pointer',
-            textAlign: 'left',
-            fontWeight: 600,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <span>✅ {lang === 'am' ? 'የተስተናገዱ' : 'Served History'}</span>
-          <span
-            style={{
-              background: 'rgba(255,255,255,0.1)',
-              color: 'var(--mu)',
-              fontSize: '.8rem',
-              padding: '2px 8px',
-              borderRadius: 999,
-              fontWeight: 600,
-            }}
+          <button
+            onClick={() => setActiveTab('completed')}
+            className={`btn ${activeTab === 'completed' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ flex: '1 1 200px', justifyContent: 'space-between', padding: '12px 18px', fontSize: '.92rem' }}
           >
-            {recentCompleted.length}
-          </span>
-        </button>
-      </div>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CheckCircle2 size={16} />
+              {lang === 'am' ? 'የተስተናገዱ' : 'Served History'}
+            </span>
+            <span className="badge badge-gray">
+              {recentCompleted.length}
+            </span>
+          </button>
+        </div>
 
-      {/* 1. READY TO SERVE ORDERS (Primary Focus for Waiters) */}
-      {activeTab === 'ready' && (
-        <div>
-          {readyOrders.length === 0 ? (
-            <div
-              className="panel"
-              style={{
-                textAlign: 'center',
-                padding: '48px 16px',
-                background: 'rgba(255,255,255,0.02)',
-              }}
-            >
-              <div style={{ fontSize: '3rem', marginBottom: 10 }}>🎉</div>
-              <h3 style={{ margin: '0 0 6px' }}>
-                {lang === 'am' ? 'ሁሉም ምግቦች ለደንበኛ ደርሰዋል!' : 'All orders served!'}
-              </h3>
-              <p className="sm" style={{ color: 'var(--mu)', margin: 0 }}>
-                {lang === 'am'
-                  ? 'ኩሽናው ምግብ አዘጋጅቶ ሲያጠናቅቅ እዚህ ላይ ወዲያውኑ ይታያል።'
-                  : 'As soon as the kitchen marks an order ready, it will ring and appear here.'}
-              </p>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                gap: 16,
-              }}
-            >
-              {readyOrders.map((ord) => (
-                <div
-                  key={ord.id}
-                  style={{
-                    background: 'linear-gradient(180deg, #18181b 0%, #09090b 100%)',
-                    border: '2px solid #8b5cf6',
-                    borderRadius: 16,
-                    padding: 16,
-                    boxShadow: '0 8px 24px rgba(139, 92, 246, 0.25)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div>
-                    {/* Header */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        marginBottom: 12,
-                        paddingBottom: 10,
-                        borderBottom: '1px dashed #3f3f46',
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            fontSize: '1.4rem',
-                            fontWeight: 800,
-                            color: '#a78bfa',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                          }}
-                        >
-                          📍 {lang === 'am' ? 'ጠረጴዛ' : 'Table'} {ord.table_number}
-                        </div>
-                        <div style={{ fontSize: '.85rem', color: 'var(--mu)' }}>
-                          {ord.order_number} {ord.customer_name ? `• ${ord.customer_name}` : ''}
-                        </div>
-                        {ord.waiter_name && (
-                          <div style={{ fontSize: '.78rem', color: '#c4b5fd', fontWeight: 600, marginTop: 2 }}>
-                            🛎️ Server: {ord.waiter_name}
+        {/* 1. READY TO SERVE ORDERS */}
+        {activeTab === 'ready' && (
+          <div>
+            {readyOrders.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '60px 20px' }}>
+                <CheckCircle2 size={48} style={{ color: '#10b981', margin: '0 auto 12px' }} />
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#0f172a' }}>
+                  {lang === 'am' ? 'ሁሉም ምግቦች ለደንበኛ ደርሰዋል!' : 'All orders served to tables!'}
+                </h3>
+                <p style={{ color: '#64748b', fontSize: '.88rem', margin: '6px 0 0' }}>
+                  {lang === 'am'
+                    ? 'ኩሽናው ምግብ አዘጋጅቶ ሲያጠናቅቅ እዚህ ላይ ወዲያውኑ ይታያል።'
+                    : 'As soon as the kitchen marks an order ready, it will ring and appear here for pickup.'}
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+                {readyOrders.map((ord) => (
+                  <div
+                    key={ord.id}
+                    className="card"
+                    style={{
+                      border: '2px solid #10b981',
+                      boxShadow: '0 6px 20px rgba(16, 185, 129, 0.15)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      padding: 20,
+                    }}
+                  >
+                    <div>
+                      {/* Card Header */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #f1f5f9', paddingBottom: 12, marginBottom: 12 }}>
+                        <div>
+                          <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a' }}>
+                            TABLE {ord.table_number.toUpperCase()}
                           </div>
-                        )}
+                          <div style={{ fontSize: '.84rem', color: '#64748b' }}>
+                            Order #{ord.order_number} {ord.customer_name ? `• ${ord.customer_name}` : ''}
+                          </div>
+                          {ord.waiter_name && (
+                            <div style={{ fontSize: '.8rem', color: '#7c3aed', fontWeight: 700, marginTop: 2 }}>
+                              Server: {ord.waiter_name}
+                            </div>
+                          )}
+                        </div>
+
+                        <span className="badge badge-green" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Clock size={12} /> {getElapsed(ord.updated_at || ord.created_at)}
+                        </span>
                       </div>
-                      <div
-                        style={{
-                          background: '#8b5cf6',
-                          color: '#fff',
-                          fontSize: '.75rem',
-                          fontWeight: 700,
-                          padding: '4px 10px',
-                          borderRadius: 999,
-                        }}
-                      >
-                        ⏱️ {getElapsed(ord.updated_at || ord.created_at)}
+
+                      {/* Items List */}
+                      <div style={{ marginBottom: 14 }}>
+                        {Array.isArray(ord.items) &&
+                          ord.items.map((it, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '6px 0',
+                                borderBottom: '1px solid #f8fafc',
+                                fontSize: '.95rem',
+                              }}
+                            >
+                              <span>
+                                <b style={{ color: '#2563eb', marginRight: 6 }}>{it.quantity}x</b>
+                                {lang === 'am' && it.name_am ? it.name_am : it.name}
+                              </span>
+                              {it.notes && (
+                                <span className="badge badge-amber" style={{ fontSize: '.72rem' }}>
+                                  {it.notes}
+                                </span>
+                              )}
+                            </div>
+                          ))}
                       </div>
+
+                      {ord.notes && (
+                        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', fontSize: '.82rem', color: '#b45309', marginBottom: 14 }}>
+                          Note: {ord.notes}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Items List */}
-                    <div style={{ marginBottom: 14 }}>
+                    {/* Mark Delivered Action */}
+                    <button
+                      onClick={() => handleMarkServed(ord.id)}
+                      className="btn btn-success"
+                      style={{ width: '100%', padding: '12px', fontSize: '1rem', fontWeight: 800 }}
+                    >
+                      <CheckCircle2 size={18} /> {lang === 'am' ? 'ለደንበኛ ደርሷል (አጠናቅቅ)' : 'Delivered to Table (Complete)'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 2. PREPARING IN KITCHEN */}
+        {activeTab === 'preparing' && (
+          <div>
+            {preparingOrders.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '48px 20px' }}>
+                <Clock size={40} style={{ color: '#cbd5e1', margin: '0 auto 10px' }} />
+                <p style={{ color: '#64748b', margin: 0 }}>
+                  {lang === 'am'
+                    ? 'በአሁኑ ሰዓት በኩሽና በመዘጋጀት ላይ ያለ ምግብ የለም።'
+                    : 'No orders are actively cooking in the kitchen right now.'}
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: 14 }}>
+                {preparingOrders.map((ord) => (
+                  <div key={ord.id} className="card" style={{ borderLeft: '4px solid #2563eb' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <b style={{ color: '#0f172a', fontSize: '1.15rem' }}>
+                        TABLE {ord.table_number}
+                      </b>
+                      <span className="badge badge-blue">
+                        <Flame size={12} /> Cooking ({getElapsed(ord.updated_at)})
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '.88rem', color: '#334155' }}>
                       {Array.isArray(ord.items) &&
                         ord.items.map((it, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              padding: '6px 0',
-                              borderBottom: '1px solid rgba(255,255,255,0.05)',
-                            }}
-                          >
-                            <span style={{ fontSize: '1rem', fontWeight: 600 }}>
-                              <span
-                                style={{
-                                  color: '#fbbf24',
-                                  fontWeight: 800,
-                                  marginRight: 6,
-                                  fontSize: '1.1rem',
-                                }}
-                              >
-                                {it.quantity}x
-                              </span>
-                              {lang === 'am' && it.name_am ? it.name_am : it.name}
-                            </span>
-                            {it.notes && (
-                              <span
-                                style={{
-                                  fontSize: '.75rem',
-                                  color: '#f59e0b',
-                                  background: 'rgba(245, 158, 11, 0.15)',
-                                  padding: '2px 6px',
-                                  borderRadius: 4,
-                                }}
-                              >
-                                {it.notes}
-                              </span>
-                            )}
+                          <div key={idx} style={{ padding: '3px 0' }}>
+                            <b style={{ color: '#2563eb' }}>{it.quantity}x</b>{' '}
+                            {lang === 'am' && it.name_am ? it.name_am : it.name}
                           </div>
                         ))}
                     </div>
-
-                    {ord.notes && (
-                      <div
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          borderRadius: 8,
-                          padding: '8px 10px',
-                          fontSize: '.82rem',
-                          color: '#e4e4e7',
-                          marginBottom: 14,
-                        }}
-                      >
-                        📝 {ord.notes}
-                      </div>
-                    )}
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-                  {/* Mark Delivered Action */}
-                  <button
-                    onClick={() => handleMarkServed(ord.id)}
-                    className="btn"
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      fontSize: '1.05rem',
-                      fontWeight: 700,
-                      background: 'linear-gradient(135deg, #10b981, #059669)',
-                      color: '#fff',
-                      boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
-                    }}
-                  >
-                    ✅ {lang === 'am' ? 'ለደንበኛ ደርሷል (አስተናግድ)' : 'Delivered to Table (Complete)'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 2. PREPARING IN KITCHEN (Status tracker for waiters) */}
-      {activeTab === 'preparing' && (
-        <div>
-          {preparingOrders.length === 0 ? (
-            <div className="panel" style={{ textAlign: 'center', padding: '36px 16px' }}>
-              <p className="empty" style={{ margin: 0 }}>
-                {lang === 'am'
-                  ? 'በአሁኑ ሰዓት በኩሽና በመዘጋጀት ላይ ያለ ምግብ የለም።'
-                  : 'No orders are actively being cooked in the kitchen right now.'}
+        {/* 3. COMPLETED SERVED ORDERS */}
+        {activeTab === 'completed' && (
+          <div className="card" style={{ padding: 22 }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem' }}>
+              {lang === 'am' ? 'በቅርብ የተስተናገዱ ትዕዛዞች' : 'Recently Served Orders'}
+            </h3>
+            {recentCompleted.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#64748b', padding: '24px 0' }}>
+                {lang === 'am' ? 'ምንም አልተገኘም' : 'No orders served yet'}
               </p>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                gap: 14,
-              }}
-            >
-              {preparingOrders.map((ord) => (
-                <div
-                  key={ord.id}
-                  className="panel"
-                  style={{
-                    border: '1px solid #3b82f6',
-                    background: 'rgba(59, 130, 246, 0.04)',
-                    padding: 14,
-                  }}
-                >
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {recentCompleted.map((ord) => (
                   <div
+                    key={ord.id}
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      marginBottom: 8,
+                      padding: '12px 16px',
+                      background: '#f8fafc',
+                      borderRadius: 12,
+                      border: '1px solid #f1f5f9',
                     }}
                   >
-                    <b style={{ color: '#60a5fa', fontSize: '1.1rem' }}>
-                      📍 {lang === 'am' ? 'ጠረጴዛ' : 'Table'} {ord.table_number}
-                    </b>
-                    <span
-                      style={{
-                        fontSize: '.75rem',
-                        background: 'rgba(59, 130, 246, 0.2)',
-                        color: '#93c5fd',
-                        padding: '2px 8px',
-                        borderRadius: 999,
-                      }}
-                    >
-                      🔥 {lang === 'am' ? 'በመዘጋጀት ላይ' : 'Cooking'} ({getElapsed(ord.updated_at)})
-                    </span>
-                  </div>
-
-                  <div style={{ fontSize: '.88rem', color: '#e4e4e7', marginBottom: 6 }}>
-                    {Array.isArray(ord.items) &&
-                      ord.items.map((it, idx) => (
-                        <div key={idx} style={{ padding: '2px 0' }}>
-                          <b style={{ color: '#fbbf24' }}>{it.quantity}x</b>{' '}
-                          {lang === 'am' && it.name_am ? it.name_am : it.name}
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 3. COMPLETED SERVED ORDERS */}
-      {activeTab === 'completed' && (
-        <div className="panel" style={{ padding: 16 }}>
-          <h3 style={{ margin: '0 0 12px' }}>
-            {lang === 'am' ? 'በቅርብ የተስተናገዱ ትዕዛዞች' : 'Recently Served Orders'}
-          </h3>
-          {recentCompleted.length === 0 ? (
-            <p className="empty">{lang === 'am' ? 'ምንም አልተገኘም' : 'No orders served yet'}</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {recentCompleted.map((ord) => (
-                <div
-                  key={ord.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '10px 12px',
-                    background: 'rgba(255,255,255,0.03)',
-                    borderRadius: 8,
-                    border: '1px solid rgba(255,255,255,0.06)',
-                  }}
-                >
-                  <div>
-                    <b>
-                      📍 {lang === 'am' ? 'ጠረጴዛ' : 'Table'} {ord.table_number}
-                    </b>{' '}
-                    <span style={{ color: 'var(--mu)', fontSize: '.85rem' }}>
-                      ({ord.order_number})
-                    </span>
-                    <div style={{ fontSize: '.8rem', color: 'var(--mu)' }}>
-                      {Array.isArray(ord.items)
-                        ? ord.items.map((i) => `${i.quantity}x ${i.name}`).join(', ')
-                        : ''}
+                    <div>
+                      <b style={{ color: '#0f172a' }}>Table {ord.table_number}</b>{' '}
+                      <span style={{ color: '#64748b', fontSize: '.84rem' }}>
+                        (#{ord.order_number})
+                      </span>
+                      <div style={{ fontSize: '.82rem', color: '#64748b', marginTop: 2 }}>
+                        {Array.isArray(ord.items)
+                          ? ord.items.map((i) => `${i.quantity}x ${i.name}`).join(', ')
+                          : ''}
+                      </div>
                     </div>
+                    <span className="badge badge-green">
+                      <Check size={12} /> {lang === 'am' ? 'ተስተናግዷል' : 'Served'}
+                    </span>
                   </div>
-                  <span
-                    style={{
-                      color: '#4ade80',
-                      fontSize: '.8rem',
-                      fontWeight: 600,
-                      background: 'rgba(34, 197, 94, 0.1)',
-                      padding: '4px 8px',
-                      borderRadius: 6,
-                    }}
-                  >
-                    ✓ {lang === 'am' ? 'ተስተናግዷል' : 'Served'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </main>
 
       {/* 4. WAITER POS MODAL (Take Table Order on the fly) */}
       {showPOS && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.85)',
-            backdropFilter: 'blur(5px)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16,
-          }}
-        >
-          <div
-            style={{
-              background: '#121210',
-              border: '1px solid var(--bd)',
-              borderRadius: 16,
-              maxWidth: 580,
-              width: '100%',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              padding: 20,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 16,
-                paddingBottom: 10,
-                borderBottom: '1px solid var(--bd)',
-              }}
-            >
-              <h2 style={{ margin: 0, fontSize: '1.25rem' }}>
-                🛎️ {lang === 'am' ? 'አዲስ የጠረጴዛ ትዕዛዝ ውሰድ' : 'Take Table Order'}
-              </h2>
-              <button
-                onClick={() => setShowPOS(false)}
-                className="btn sm x"
-                style={{ padding: '4px 10px' }}
-              >
-                ✕
+        <div className="modal-backdrop" onClick={() => setShowPOS(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 620 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Plus size={20} color="#2563eb" />
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
+                  {lang === 'am' ? 'አዲስ የጠረጴዛ ትዕዛዝ ውሰድ' : 'Take Table Order'}
+                </h3>
+              </div>
+              <button onClick={() => setShowPOS(false)} className="btn btn-ghost btn-sm" style={{ padding: 6 }}>
+                <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleCreateWaiterOrder}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
-                  <label style={{ fontSize: '.8rem', color: 'var(--mu)', display: 'block', marginBottom: 4 }}>
+                  <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>
                     {lang === 'am' ? 'የጠረጴዛ ቁጥር *' : 'Table Number *'}
                   </label>
                   <input
@@ -772,154 +556,115 @@ export default function WaiterPage() {
                     placeholder="e.g. 5"
                     value={posTable}
                     onChange={(e) => setPosTable(e.target.value)}
-                    style={{ width: '100%' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '.8rem', color: 'var(--mu)', display: 'block', marginBottom: 4 }}>
-                    {lang === 'am' ? 'የደንበኛ ስም (አማራጭ)' : 'Customer Name (optional)'}
+                  <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                    {lang === 'am' ? 'የደንበኛ ስም (አማራጭ)' : 'Customer Name (Optional)'}
                   </label>
                   <input
-                    placeholder="Guest"
+                    placeholder="e.g. Guest"
                     value={posCustomer}
                     onChange={(e) => setPosCustomer(e.target.value)}
-                    style={{ width: '100%' }}
                   />
                 </div>
               </div>
 
-              {/* Dish Selection */}
-              <label style={{ fontSize: '.8rem', color: 'var(--mu)', display: 'block', marginBottom: 6 }}>
-                {lang === 'am' ? 'ምግቦችን ይምረጡ' : 'Select Dishes from Menu'}
-              </label>
-              <div
-                style={{
-                  maxHeight: 180,
-                  overflowY: 'auto',
-                  border: '1px solid var(--bd)',
-                  borderRadius: 10,
-                  padding: 8,
-                  marginBottom: 12,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 6,
-                }}
-              >
-                {menuItems.map((dish) => (
-                  <div
-                    key={dish.id}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '6px 10px',
-                      background: 'rgba(255,255,255,0.03)',
-                      borderRadius: 8,
-                    }}
-                  >
-                    <span>
-                      {lang === 'am' && dish.name_am ? dish.name_am : dish.name} -{' '}
-                      <b style={{ color: 'var(--o)' }}>{dish.price} ETB</b>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => addPosItem(dish)}
-                      className="btn sm o"
-                      style={{ padding: '2px 10px' }}
-                    >
-                      + Add
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Order Cart */}
-              {posItems.length > 0 && (
+              {/* Dish Selection Grid */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                  {lang === 'am' ? 'ምግቦችን ይምረጡ' : 'Select Dishes from Menu'}
+                </label>
                 <div
                   style={{
-                    background: 'rgba(255,255,255,0.02)',
-                    border: '1px solid var(--bd)',
-                    borderRadius: 10,
-                    padding: 10,
-                    marginBottom: 12,
+                    maxHeight: 180,
+                    overflowY: 'auto',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 12,
+                    padding: 8,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
                   }}
                 >
-                  <b style={{ fontSize: '.9rem', display: 'block', marginBottom: 6 }}>
-                    {lang === 'am' ? 'የተመረጡ ምግቦች:' : 'Selected Items:'}
-                  </b>
-                  {posItems.map((item) => (
+                  {menuItems.map((dish) => (
                     <div
-                      key={item.id}
+                      key={dish.id}
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        padding: '4px 0',
+                        padding: '8px 12px',
+                        background: '#f8fafc',
+                        borderRadius: 8,
+                        border: '1px solid #f1f5f9',
                       }}
                     >
+                      <span style={{ fontSize: '.88rem', fontWeight: 600, color: '#0f172a' }}>
+                        {lang === 'am' && dish.name_am ? dish.name_am : dish.name} -{' '}
+                        <b style={{ color: '#2563eb' }}>{dish.price} ETB</b>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => addPosItem(dish)}
+                        className="btn btn-primary btn-sm"
+                        style={{ padding: '4px 10px' }}
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Order Cart */}
+              {posItems.length > 0 && (
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, marginBottom: 14 }}>
+                  <b style={{ fontSize: '.88rem', display: 'block', marginBottom: 8, color: '#0f172a' }}>
+                    {lang === 'am' ? 'የተመረጡ ምግቦች:' : 'Selected Items:'}
+                  </b>
+                  {posItems.map((item) => (
+                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: '.86rem' }}>
                       <span>
                         {item.name} ({item.price} ETB)
                       </span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <button
-                          type="button"
-                          onClick={() => removePosItem(item.id)}
-                          className="btn sm x"
-                          style={{ padding: '1px 6px' }}
-                        >
+                        <button type="button" onClick={() => removePosItem(item.id)} className="btn btn-secondary btn-sm" style={{ padding: '2px 8px' }}>
                           -
                         </button>
                         <b>{item.quantity}</b>
-                        <button
-                          type="button"
-                          onClick={() => addPosItem(item)}
-                          className="btn sm o"
-                          style={{ padding: '1px 6px' }}
-                        >
+                        <button type="button" onClick={() => addPosItem(item)} className="btn btn-secondary btn-sm" style={{ padding: '2px 8px' }}>
                           +
                         </button>
                       </div>
                     </div>
                   ))}
-                  <div
-                    style={{
-                      borderTop: '1px solid var(--bd)',
-                      marginTop: 8,
-                      paddingTop: 8,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontWeight: 700,
-                    }}
-                  >
+                  <div style={{ borderTop: '1px solid #e2e8f0', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.1rem' }}>
                     <span>Total:</span>
-                    <span style={{ color: 'var(--o)' }}>{posTotal} ETB</span>
+                    <span style={{ color: '#2563eb' }}>{posTotal.toLocaleString()} ETB</span>
                   </div>
                 </div>
               )}
 
-              <input
-                placeholder={lang === 'am' ? 'ልዩ ማስታወሻ...' : 'Kitchen notes (e.g. no pepper)'}
-                value={posNotes}
-                onChange={(e) => setPosNotes(e.target.value)}
-                style={{ width: '100%', marginBottom: 14 }}
-              />
+              <div style={{ marginBottom: 16 }}>
+                <input
+                  placeholder={lang === 'am' ? 'ልዩ ማስታወሻ...' : 'Kitchen notes (e.g. no pepper)'}
+                  value={posNotes}
+                  onChange={(e) => setPosNotes(e.target.value)}
+                />
+              </div>
 
               <div style={{ display: 'flex', gap: 10 }}>
-                <button
-                  type="button"
-                  onClick={() => setShowPOS(false)}
-                  className="btn x"
-                  style={{ flex: 1 }}
-                >
+                <button type="button" onClick={() => setShowPOS(false)} className="btn btn-secondary" style={{ flex: 1 }}>
                   {lang === 'am' ? 'ሰርዝ' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   disabled={posBusy || posItems.length === 0}
-                  className="btn o"
+                  className="btn btn-primary"
                   style={{ flex: 2 }}
                 >
-                  {posBusy ? 'Submitting...' : lang === 'am' ? 'ትዕዛዙን ላክ' : 'Send to Kitchen & Cashier'}
+                  {posBusy ? 'Submitting...' : lang === 'am' ? 'ትዕዛዙን ወደ ኩሽና ላክ' : 'Send to Kitchen & Cashier'}
                 </button>
               </div>
             </form>
@@ -927,13 +672,13 @@ export default function WaiterPage() {
         </div>
       )}
 
-      {/* 100% Free Staff Security, Password Change & 2FA Modal */}
+      {/* Staff Security & 2FA Modal */}
       <StaffSecurityModal
         isOpen={showSecurityModal}
         onClose={() => setShowSecurityModal(false)}
         session={session}
         lang={lang}
       />
-    </main>
+    </div>
   );
 }

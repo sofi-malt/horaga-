@@ -1,5 +1,20 @@
 'use client';
 import { useState, useEffect } from 'react';
+import {
+  ShieldCheck,
+  KeyRound,
+  QrCode,
+  Copy,
+  Check,
+  CheckCircle2,
+  AlertTriangle,
+  X,
+  Eye,
+  EyeOff,
+  Mail,
+  Trash2,
+  Lock,
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getDictionary } from '../lib/translations';
 
@@ -94,7 +109,7 @@ export default function StaffSecurityModal({ isOpen, onClose, session, lang = 'a
     try {
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
-        issuer: 'Hiraga Restaurant',
+        issuer: 'Royal Hotel',
       });
       setBusyMfa(false);
       if (error) {
@@ -201,95 +216,82 @@ export default function StaffSecurityModal({ isOpen, onClose, session, lang = 'a
   const hasActiveTotp = mfaFactors.some((f) => f.status === 'verified');
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.85)',
-        backdropFilter: 'blur(6px)',
-        zIndex: 10000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-      }}
-    >
-      <div
-        style={{
-          background: '#121210',
-          border: '1px solid var(--bd, #27272a)',
-          borderRadius: 16,
-          maxWidth: 540,
-          width: '100%',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          padding: 24,
-          boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
-        }}
-      >
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 540 }}>
         {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: 16,
-            paddingBottom: 12,
-            borderBottom: '1px solid var(--bd)',
-          }}
-        >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, paddingBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
           <div>
-            <h2 style={{ margin: '0 0 4px', fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-              🔐 {T.securitySettings}
-            </h2>
-            <div style={{ fontSize: '.82rem', color: 'var(--mu)' }}>
-              {session.user?.email} •{' '}
-              <span style={{ color: 'var(--o)', fontWeight: 600 }}>
-                {session.user?.user_metadata?.role?.toUpperCase() || 'STAFF'}
-              </span>
+            <h3 style={{ margin: '0 0 4px', fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <ShieldCheck size={22} color="#2563eb" /> {T.securitySettings}
+            </h3>
+            <div style={{ fontSize: '.8rem', color: '#64748b' }}>
+              {session.user?.email} • <b style={{ color: '#2563eb' }}>{session.user?.user_metadata?.role?.toUpperCase() || 'STAFF'}</b>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="btn sm x"
-            style={{ padding: '4px 10px', fontSize: '1rem' }}
-          >
-            ✕
+          <button onClick={onClose} className="btn btn-ghost btn-sm" style={{ padding: 6 }}>
+            <X size={18} />
           </button>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+        {/* Tab Switcher */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 18, background: '#f1f5f9', padding: 4, borderRadius: 12 }}>
           <button
             type="button"
             onClick={() => setActiveTab('password')}
-            className={`btn sm ${activeTab === 'password' ? 'o' : 'x'}`}
-            style={{ flex: 1, padding: '8px 12px', fontSize: '.88rem' }}
+            style={{
+              flex: 1,
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: 'none',
+              background: activeTab === 'password' ? '#ffffff' : 'transparent',
+              color: activeTab === 'password' ? '#0f172a' : '#64748b',
+              fontWeight: 700,
+              fontSize: '.84rem',
+              cursor: 'pointer',
+              boxShadow: activeTab === 'password' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
           >
-            🔑 {T.changePassword}
+            <KeyRound size={15} /> {T.changePassword}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('2fa')}
-            className={`btn sm ${activeTab === '2fa' ? 'o' : 'x'}`}
-            style={{ flex: 1, padding: '8px 12px', fontSize: '.88rem' }}
+            style={{
+              flex: 1,
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: 'none',
+              background: activeTab === '2fa' ? '#ffffff' : 'transparent',
+              color: activeTab === '2fa' ? '#0f172a' : '#64748b',
+              fontWeight: 700,
+              fontSize: '.84rem',
+              cursor: 'pointer',
+              boxShadow: activeTab === '2fa' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
           >
-            🛡️ {T.twoFactorTitle}
+            <ShieldCheck size={15} /> {T.twoFactorAuth}
+            {hasActiveTotp && (
+              <span className="badge badge-green" style={{ fontSize: '.68rem', padding: '1px 6px' }}>
+                ON
+              </span>
+            )}
           </button>
         </div>
 
         {/* TAB 1: CHANGE PASSWORD */}
         {activeTab === 'password' && (
           <form onSubmit={handleUpdatePassword}>
-            <p className="sm" style={{ color: 'var(--mu)', marginTop: 0 }}>
-              {lang === 'am'
-                ? 'በስራ አስኪያጅ የተሰጠዎትን ጊዜያዊ የይለፍ ቃል ወደራስዎ ሚስጥራዊ የይለፍ ቃል እዚህ መቀየር ይችላሉ።'
-                : 'Update your temporary staff password to your own private secret password.'}
-            </p>
-
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: '.82rem', color: 'var(--mu)', display: 'block', marginBottom: 4 }}>
-                {T.newPassword} *
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                {T.newPassword} (ቢያንስ 6 ፊደላት) *
               </label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -298,30 +300,28 @@ export default function StaffSecurityModal({ isOpen, onClose, session, lang = 'a
                   placeholder="••••••••"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  style={{ width: '100%', paddingRight: 40 }}
+                  style={{ paddingRight: 40 }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
                   style={{
                     position: 'absolute',
-                    right: 8,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
+                    right: 12,
+                    top: 12,
                     background: 'transparent',
                     border: 'none',
-                    color: 'var(--mu)',
                     cursor: 'pointer',
-                    fontSize: '.85rem',
+                    color: '#94a3b8',
                   }}
                 >
-                  {showPw ? '🙈' : '👁️'}
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: '.82rem', color: 'var(--mu)', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>
                 {T.confirmNewPassword} *
               </label>
               <input
@@ -330,20 +330,20 @@ export default function StaffSecurityModal({ isOpen, onClose, session, lang = 'a
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                style={{ width: '100%' }}
               />
             </div>
 
             {pwMsg.text && (
               <div
-                className={pwMsg.bad ? 'err' : 'ok'}
                 style={{
                   padding: '8px 12px',
                   borderRadius: 8,
-                  fontSize: '.88rem',
                   marginBottom: 14,
-                  background: pwMsg.bad ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                  border: `1px solid ${pwMsg.bad ? '#ef4444' : '#22c55e'}`,
+                  fontSize: '.84rem',
+                  fontWeight: 600,
+                  background: pwMsg.bad ? '#fef2f2' : '#f0fdf4',
+                  color: pwMsg.bad ? '#991b1b' : '#166534',
+                  border: `1px solid ${pwMsg.bad ? '#fecaca' : '#bbf7d0'}`,
                 }}
               >
                 {pwMsg.text}
@@ -353,240 +353,199 @@ export default function StaffSecurityModal({ isOpen, onClose, session, lang = 'a
             <button
               type="submit"
               disabled={busyPw}
-              className="btn o"
-              style={{ width: '100%', padding: '12px', fontSize: '.95rem', fontWeight: 600 }}
+              className="btn btn-primary"
+              style={{ width: '100%', padding: '12px' }}
             >
-              {busyPw ? 'Updating...' : T.updatePasswordBtn}
+              {busyPw ? 'Updating...' : T.updatePassword}
             </button>
           </form>
         )}
 
-        {/* TAB 2: DOUBLE VERIFICATION (100% FREE 2FA) */}
+        {/* TAB 2: 2-FACTOR AUTH (GOOGLE AUTHENTICATOR) */}
         {activeTab === '2fa' && (
           <div>
-            {/* Section A: Google Authenticator */}
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid var(--bd)',
-                borderRadius: 12,
-                padding: 16,
-                marginBottom: 16,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <b style={{ fontSize: '1rem', color: '#60a5fa' }}>
-                  📱 {T.googleAuthTitle}
-                </b>
-                {hasActiveTotp ? (
-                  <span
-                    style={{
-                      fontSize: '.72rem',
-                      background: 'rgba(34, 197, 94, 0.2)',
-                      color: '#4ade80',
-                      padding: '3px 8px',
-                      borderRadius: 999,
-                      fontWeight: 700,
-                    }}
-                  >
-                    ● ACTIVE
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      fontSize: '.72rem',
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      color: 'var(--mu)',
-                      padding: '3px 8px',
-                      borderRadius: 999,
-                    }}
-                  >
-                    100% FREE
-                  </span>
-                )}
-              </div>
-              <p className="sm" style={{ color: 'var(--mu)', marginTop: 0, lineHeight: 1.4 }}>
-                {T.googleAuthDesc}
-              </p>
+            {/* If currently in enrollment flow (display QR code) */}
+            {enrollingFactor ? (
+              <form onSubmit={confirmMfaEnrollment}>
+                <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                  <b style={{ fontSize: '1rem', color: '#0f172a', display: 'block' }}>
+                    {T.scanQrWithGoogleAuth}
+                  </b>
+                  <p style={{ color: '#64748b', fontSize: '.82rem', margin: '4px 0 14px' }}>
+                    {lang === 'am'
+                      ? 'ጎግል ኦተንቲኬተር (Google Authenticator) መተግበሪያን ከስልክዎ ከፍተው ከታች ያለውን QR ስካን ያድርጉ'
+                      : 'Open Google Authenticator or Microsoft Authenticator and scan this QR code:'}
+                  </p>
 
-              {/* Status & Actions */}
-              {loadingMfa ? (
-                <p className="sm">Checking 2FA status...</p>
-              ) : hasActiveTotp ? (
-                <div>
-                  <div
-                    style={{
-                      background: 'rgba(34, 197, 94, 0.1)',
-                      border: '1px solid rgba(34, 197, 94, 0.3)',
-                      color: '#4ade80',
-                      padding: '10px 12px',
-                      borderRadius: 8,
-                      fontSize: '.85rem',
-                      marginBottom: 10,
-                      fontWeight: 600,
-                    }}
-                  >
-                    ✓ {T.twoFactorActive}
-                  </div>
-                  <button
-                    onClick={() => handleDisableMfa(mfaFactors[0].id)}
-                    className="btn sm x"
-                    disabled={busyMfa}
-                    style={{ fontSize: '.8rem' }}
-                  >
-                    {T.disable2fa}
-                  </button>
-                </div>
-              ) : enrollingFactor ? (
-                /* Enrollment In Progress (Show QR Code & Confirm) */
-                <form onSubmit={confirmMfaEnrollment} style={{ marginTop: 12 }}>
-                  <div style={{ textAlign: 'center', background: '#fff', padding: 12, borderRadius: 12, marginBottom: 10 }}>
-                    {enrollingFactor.totp?.qr_code && (
+                  {enrollingFactor.totp?.qr_code && (
+                    <div style={{ background: '#f8fafc', padding: 14, borderRadius: 12, display: 'inline-block', border: '1px solid #e2e8f0' }}>
                       <img
                         src={enrollingFactor.totp.qr_code}
                         alt="2FA QR Code"
-                        style={{ width: 180, height: 180, display: 'inline-block' }}
+                        style={{ width: 170, height: 170, margin: '0 auto', borderRadius: 8 }}
                       />
-                    )}
-                  </div>
-                  <p className="sm" style={{ textAlign: 'center', margin: '4px 0 10px', color: 'var(--mu)' }}>
-                    Scan with Google Authenticator or Microsoft Authenticator app on your phone.
-                  </p>
-
-                  {/* Secret Key manual entry option */}
-                  {enrollingFactor.totp?.secret && (
-                    <div
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        padding: '8px 10px',
-                        borderRadius: 8,
-                        fontSize: '.78rem',
-                        marginBottom: 12,
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <span style={{ fontFamily: 'monospace', letterSpacing: 1 }}>
-                        Key: {enrollingFactor.totp.secret}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => copySecret(enrollingFactor.totp.secret)}
-                        className="btn sm x"
-                        style={{ padding: '2px 8px', fontSize: '.72rem' }}
-                      >
-                        {copiedSecret ? '✓ Copied' : 'Copy'}
-                      </button>
                     </div>
                   )}
 
-                  <label style={{ fontSize: '.82rem', color: 'var(--mu)', display: 'block', marginBottom: 4 }}>
-                    {T.enterOtpPrompt}
-                  </label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input
-                      required
-                      autoFocus
-                      placeholder="e.g. 123456"
-                      maxLength={6}
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                      style={{
-                        flex: 1,
-                        fontSize: '1.2rem',
-                        letterSpacing: 4,
-                        textAlign: 'center',
-                        fontWeight: 700,
-                      }}
-                    />
-                    <button type="submit" disabled={busyMfa || otpCode.length < 6} className="btn o" style={{ padding: '0 16px' }}>
-                      {busyMfa ? 'Verifying...' : T.verifyAndActivate}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                /* Not enrolled yet -> Button to Start */
-                <button
-                  type="button"
-                  onClick={startMfaEnrollment}
-                  disabled={busyMfa}
-                  className="btn o sm"
-                  style={{ fontWeight: 600 }}
-                >
-                  {busyMfa ? 'Generating QR...' : `➕ ${T.enableGoogleAuth}`}
-                </button>
-              )}
-
-              {mfaMsg.text && (
-                <div
-                  className={mfaMsg.bad ? 'err' : 'ok'}
-                  style={{
-                    padding: '8px 10px',
-                    borderRadius: 8,
-                    fontSize: '.85rem',
-                    marginTop: 10,
-                    background: mfaMsg.bad ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                  }}
-                >
-                  {mfaMsg.text}
+                  {enrollingFactor.totp?.secret && (
+                    <div style={{ marginTop: 12, fontSize: '.8rem', color: '#64748b' }}>
+                      <span>Manual Secret Code: </span>
+                      <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, fontWeight: 700, color: '#0f172a' }}>
+                        {enrollingFactor.totp.secret}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => copySecret(enrollingFactor.totp.secret)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '2px 8px', marginLeft: 8 }}
+                      >
+                        {copiedSecret ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Section B: Email OTP (Always available backup) */}
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid var(--bd)',
-                borderRadius: 12,
-                padding: 16,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <b style={{ fontSize: '1rem', color: '#a78bfa' }}>
-                  📧 {T.emailOtpTitle}
-                </b>
-                <span
-                  style={{
-                    fontSize: '.72rem',
-                    background: 'rgba(167, 139, 250, 0.2)',
-                    color: '#c4b5fd',
-                    padding: '3px 8px',
-                    borderRadius: 999,
-                    fontWeight: 700,
-                  }}
-                >
-                  ● ALWAYS AVAILABLE
-                </span>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                    {T.enter6DigitCode}
+                  </label>
+                  <input
+                    required
+                    autoFocus
+                    placeholder="••••••"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    style={{
+                      width: '100%',
+                      fontSize: '1.4rem',
+                      letterSpacing: 6,
+                      textAlign: 'center',
+                      fontWeight: 700,
+                    }}
+                  />
+                </div>
+
+                {mfaMsg.text && (
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      marginBottom: 14,
+                      fontSize: '.84rem',
+                      fontWeight: 600,
+                      background: mfaMsg.bad ? '#fef2f2' : '#f0fdf4',
+                      color: mfaMsg.bad ? '#991b1b' : '#166534',
+                      border: `1px solid ${mfaMsg.bad ? '#fecaca' : '#bbf7d0'}`,
+                    }}
+                  >
+                    {mfaMsg.text}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEnrollingFactor(null);
+                      setOtpCode('');
+                    }}
+                    className="btn btn-secondary"
+                    style={{ flex: 1 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={busyMfa || otpCode.length < 6}
+                    className="btn btn-primary"
+                    style={{ flex: 2 }}
+                  >
+                    {busyMfa ? 'Verifying...' : T.verifyAndActivate}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* Standard 2FA Status & Manage View */
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: 12, background: hasActiveTotp ? '#f0fdf4' : '#fffbeb', border: `1px solid ${hasActiveTotp ? '#bbf7d0' : '#fde68a'}`, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: hasActiveTotp ? '#ecfdf5' : '#fef3c7', color: hasActiveTotp ? '#059669' : '#d97706', display: 'grid', placeItems: 'center' }}>
+                      <ShieldCheck size={22} />
+                    </div>
+                    <div>
+                      <b style={{ color: hasActiveTotp ? '#166534' : '#92400e', fontSize: '.95rem', display: 'block' }}>
+                        {hasActiveTotp ? T.twoFactorActive : T.twoFactorDisabled}
+                      </b>
+                      <span style={{ fontSize: '.78rem', color: '#64748b' }}>
+                        Google Authenticator (TOTP)
+                      </span>
+                    </div>
+                  </div>
+
+                  {!hasActiveTotp ? (
+                    <button
+                      type="button"
+                      disabled={busyMfa || loadingMfa}
+                      onClick={startMfaEnrollment}
+                      className="btn btn-primary btn-sm"
+                    >
+                      {busyMfa ? 'Starting...' : T.enable2FaNow}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleDisableMfa(mfaFactors[0]?.id)}
+                      className="btn btn-danger btn-sm"
+                    >
+                      <Trash2 size={13} /> {T.disable2Fa}
+                    </button>
+                  )}
+                </div>
+
+                {mfaMsg.text && (
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      marginBottom: 14,
+                      fontSize: '.84rem',
+                      fontWeight: 600,
+                      background: mfaMsg.bad ? '#fef2f2' : '#f0fdf4',
+                      color: mfaMsg.bad ? '#991b1b' : '#166534',
+                      border: `1px solid ${mfaMsg.bad ? '#fecaca' : '#bbf7d0'}`,
+                    }}
+                  >
+                    {mfaMsg.text}
+                  </div>
+                )}
+
+                {/* Email OTP Test Feature */}
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 14, marginTop: 14 }}>
+                  <b style={{ fontSize: '.88rem', color: '#0f172a', display: 'block', marginBottom: 4 }}>
+                    Email OTP Alternative
+                  </b>
+                  <p style={{ color: '#64748b', fontSize: '.8rem', margin: '0 0 10px' }}>
+                    Staff can also log in without a password using a 6-digit code delivered to their email inbox.
+                  </p>
+                  <button
+                    type="button"
+                    disabled={busyEmailOtp}
+                    onClick={handleTestEmailOtp}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    <Mail size={13} /> {busyEmailOtp ? 'Sending...' : 'Test Send 6-Digit Email Code'}
+                  </button>
+                  {emailOtpSent && (
+                    <span style={{ fontSize: '.8rem', color: '#059669', marginLeft: 8, fontWeight: 600 }}>
+                      ✓ Test code sent to {session.user.email}!
+                    </span>
+                  )}
+                </div>
               </div>
-              <p className="sm" style={{ color: 'var(--mu)', marginTop: 0, lineHeight: 1.4 }}>
-                {T.emailOtpDesc}
-              </p>
-
-              <button
-                type="button"
-                onClick={handleTestEmailOtp}
-                disabled={busyEmailOtp}
-                className="btn sm x"
-                style={{ fontSize: '.8rem' }}
-              >
-                {busyEmailOtp
-                  ? 'Sending code...'
-                  : emailOtpSent
-                  ? '✓ Test Code Sent to your Email!'
-                  : '✉️ Send Test 6-Digit Code to My Email'}
-              </button>
-            </div>
+            )}
           </div>
         )}
-
-        {/* Footer */}
-        <div style={{ marginTop: 20, textAlign: 'right' }}>
-          <button onClick={onClose} className="btn x" style={{ padding: '8px 18px' }}>
-            {lang === 'am' ? 'ዝጋ' : 'Close'}
-          </button>
-        </div>
       </div>
     </div>
   );

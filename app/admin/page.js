@@ -1,6 +1,45 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
+import {
+  LayoutDashboard,
+  UtensilsCrossed,
+  FolderTree,
+  Users,
+  CreditCard,
+  Share2,
+  QrCode,
+  Database,
+  ShieldCheck,
+  Monitor,
+  ArrowUpDown,
+  Tag,
+  Bell,
+  Search,
+  Plus,
+  Trash2,
+  Edit3,
+  Check,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  Printer,
+  Download,
+  LogOut,
+  ExternalLink,
+  TrendingUp,
+  Sparkles,
+  X,
+  Menu,
+  Phone,
+  Send,
+  MessageSquare,
+  Globe,
+  MapPin,
+  FileText,
+  UserCheck,
+  ChevronDown,
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { TAGS } from '../../lib/tags';
 import StaffLoginForm from '../../components/StaffLoginForm';
@@ -28,7 +67,7 @@ const shrink = (file) =>
       c.width = im.width * k;
       c.height = im.height * k;
       c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-      c.toBlob(res, 'image/jpeg', 0.8);
+      c.toBlob(res, 'image/jpeg', 0.82);
     };
     im.src = URL.createObjectURL(file);
   });
@@ -48,6 +87,7 @@ export default function Admin() {
   const [qr, setQr] = useState({ url: '', img: '' });
   const [st, setSt] = useState({});
   const [copiedSql, setCopiedSql] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Modern Navigation & View Tabs
   const [currentTab, setCurrentTab] = useState('overview');
@@ -63,6 +103,9 @@ export default function Admin() {
   // Filter & Search
   const [dishSearch, setDishSearch] = useState('');
   const [selectedCatFilter, setSelectedCatFilter] = useState('all');
+
+  // Interactive Chart Tooltip
+  const [activeChartPoint, setActiveChartPoint] = useState(null);
 
   // Staff accounts state
   const [staffList, setStaffList] = useState([]);
@@ -164,12 +207,13 @@ export default function Admin() {
   };
 
   const load = useCallback(async () => {
+    setIsLoading(true);
     try {
       const [c, i, s, o] = await Promise.all([
         supabase.from('categories').select('*').order('sort').order('id'),
         supabase.from('items').select('*').order('sort').order('id'),
         supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
-        supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(25),
+        supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(30),
       ]);
       if (c.error) say('Categories: ' + c.error.message, true);
       if (i.error) say('Dishes: ' + i.error.message, true);
@@ -179,6 +223,8 @@ export default function Admin() {
       setOrders(o.data || []);
     } catch (err) {
       say('Failed to connect to database. Please check Supabase credentials.', true);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -318,7 +364,7 @@ export default function Admin() {
       supabase.from('categories').select('*'),
       supabase.from('items').select('*'),
       supabase.from('settings').select('*'),
-      supabase.from('orders').select('*').limit(200),
+      supabase.from('orders').select('*').limit(250),
     ]);
     const blob = new Blob(
       [
@@ -338,14 +384,14 @@ export default function Admin() {
     );
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `hiraga-hotel-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `royal-hotel-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
   };
 
   const printCard = () => {
     const w = window.open('', '_blank');
     w.document.write(
-      `<html><head><title>Hiraga Table QR</title><style>body{margin:0;background:#fff;color:#000;font-family:system-ui;text-align:center;padding:40px}.l{width:220px;margin-bottom:12px}.q{width:280px;background:#fff;padding:12px;border:2px solid #ddd;border-radius:18px}h1{margin:12px 0 4px;color:#1e3a5f;font-size:26px}p{color:#64748b;margin:0 0 16px;font-size:16px}</style></head><body><img class="l" src="${location.origin}/logo.png"><h1>Scan for Menu</h1><p>ሜኑውን ለማየት ስካን ያድርጉ</p><img class="q" src="${qr.img}">${tbl ? `<h1>Table ${tbl.replace(/[<>&"]/g, '')}</h1>` : ''}<script>onload=function(){setTimeout(print,400)}<\/script></body></html>`
+      `<html><head><title>Royal Hotel - Table QR Card</title><style>body{margin:0;background:#fff;color:#0f172a;font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:48px 24px}.l{width:180px;margin-bottom:16px}.q{width:260px;background:#fff;padding:16px;border:2px solid #e2e8f0;border-radius:24px;box-shadow:0 8px 30px rgba(0,0,0,0.06)}h1{margin:16px 0 6px;color:#0f172a;font-size:24px;font-weight:800}p{color:#64748b;margin:0 0 20px;font-size:15px}.table-badge{display:inline-block;background:#2563eb;color:#fff;padding:6px 20px;border-radius:999px;font-weight:700;font-size:18px;margin-top:14px}</style></head><body><img class="l" src="${location.origin}/logo.png"><h1>Scan for Digital Menu</h1><p>ሜኑውን ለማየት በስልክዎ ስካን ያድርጉ</p><img class="q" src="${qr.img}">${tbl ? `<br><div class="table-badge">Table ${tbl.replace(/[<>&"]/g, '')}</div>` : ''}<script>onload=function(){setTimeout(print,400)}<\/script></body></html>`
     );
     w.document.close();
   };
@@ -355,7 +401,7 @@ export default function Admin() {
     setQr({ url, img: await QRCode.toDataURL(url, { width: 700, margin: 2 }) });
   };
 
-  const ordersSql = `-- Run this query in Supabase SQL Editor:
+  const ordersSql = `-- Supabase Orders & Staff SQL Migration:
 create table if not exists orders (
   id bigint generated always as identity primary key,
   order_number text not null,
@@ -392,10 +438,11 @@ alter publication supabase_realtime add table orders;`;
   // 1. Session Loading
   if (session === undefined) {
     return (
-      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f7fe', color: '#1e293b' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 44, height: 44, border: '4px solid #2563eb', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
-          <p style={{ fontWeight: 600, color: '#64748b' }}>Loading Hotel Management Portal...</p>
+      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+        <div style={{ textAlign: 'center', padding: 32 }}>
+          <div style={{ width: 44, height: 44, border: '3px solid #e2e8f0', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>Royal Hotel Management System</h3>
+          <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: '.88rem' }}>Authenticating secure administrative session...</p>
         </div>
       </main>
     );
@@ -406,8 +453,8 @@ alter publication supabase_realtime add table orders;`;
     return (
       <StaffLoginForm
         title="Admin & Manager Sign In"
-        subtitle="Full administrative control for Hiraga Restaurant."
-        icon="⚙️"
+        subtitle="Royal Hotel Enterprise Administration Portal"
+        icon={<ShieldCheck size={28} className="text-blue-500" />}
         lang="en"
         onLoginSuccess={(s) => setSession(s)}
       />
@@ -434,13 +481,13 @@ alter publication supabase_realtime add table orders;`;
   // Active staff count
   const onDutyCount = staffList.filter((s) => s.active).length;
 
-  // Recent orders fallback demonstration
-  const displayOrders = orders.length > 0 ? orders.slice(0, 5) : [
-    { id: 1007, order_number: '1007', table_number: '3', items: [{ name: 'Grilled Chicken', quantity: 1 }, { name: 'Juice', quantity: 1 }], total: 320, status: 'preparing', created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString() },
-    { id: 1006, order_number: '1006', table_number: '5', items: [{ name: 'Pasta', quantity: 1 }, { name: 'Salad', quantity: 1 }], total: 280, status: 'confirmed', created_at: new Date(Date.now() - 1000 * 60 * 38).toISOString() },
-    { id: 1005, order_number: '1005', table_number: '8', items: [{ name: 'Burger', quantity: 1 }, { name: 'Fries', quantity: 1 }], total: 450, status: 'ready', created_at: new Date(Date.now() - 1000 * 60 * 40).toISOString() },
-    { id: 1004, order_number: '1004', table_number: '6', items: [{ name: 'Coffee', quantity: 2 }, { name: 'Cake', quantity: 1 }], total: 180, status: 'delivered', created_at: new Date(Date.now() - 1000 * 60 * 70).toISOString() },
-    { id: 1003, order_number: '1003', table_number: '4', items: [{ name: 'Steak', quantity: 1 }, { name: 'Fresh Juice', quantity: 1 }], total: 520, status: 'paid', created_at: new Date(Date.now() - 1000 * 60 * 90).toISOString() },
+  // Recent orders list
+  const displayOrders = orders.length > 0 ? orders.slice(0, 6) : [
+    { id: 1007, order_number: '1007', table_number: '3', items: [{ name: 'Grilled Chicken', quantity: 1 }, { name: 'Fresh Juice', quantity: 1 }], total: 320, status: 'preparing', created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString() },
+    { id: 1006, order_number: '1006', table_number: '5', items: [{ name: 'Pasta Alfredo', quantity: 1 }, { name: 'Salad', quantity: 1 }], total: 280, status: 'confirmed', created_at: new Date(Date.now() - 1000 * 60 * 38).toISOString() },
+    { id: 1005, order_number: '1005', table_number: '8', items: [{ name: 'Beef Burger', quantity: 1 }, { name: 'French Fries', quantity: 1 }], total: 450, status: 'ready', created_at: new Date(Date.now() - 1000 * 60 * 40).toISOString() },
+    { id: 1004, order_number: '1004', table_number: '6', items: [{ name: 'Ethiopian Coffee', quantity: 2 }, { name: 'Chocolate Cake', quantity: 1 }], total: 180, status: 'delivered', created_at: new Date(Date.now() - 1000 * 60 * 70).toISOString() },
+    { id: 1003, order_number: '1003', table_number: '4', items: [{ name: 'Special Tibbs', quantity: 1 }, { name: 'Mango Juice', quantity: 1 }], total: 520, status: 'paid', created_at: new Date(Date.now() - 1000 * 60 * 90).toISOString() },
   ];
 
   // Top dishes list
@@ -455,31 +502,31 @@ alter publication supabase_realtime add table orders;`;
   // Total sales calculation
   const totalSalesToday = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0) || 2850;
 
-  // Navigation Items matching the reference UI exactly
+  // Premium SaaS Sidebar Navigation Items
   const navItems = [
-    { id: 'overview', icon: '🏠', label: 'Dashboard' },
-    { id: 'dishes', icon: '🍽️', label: 'Dishes', count: items.length },
-    { id: 'categories', icon: '⊞', label: 'Categories', count: cats.length },
-    { id: 'staff', icon: '👥', label: 'Staff & Accounts', count: staffList.length },
-    { id: 'payments', icon: '💳', label: 'Payment Setup' },
-    { id: 'contacts', icon: '🔗', label: 'Social Media & Contacts' },
-    { id: 'qrcodes', icon: '🏷️', label: 'Table QR Codes' },
-    { id: 'database', icon: '💾', label: 'Backup & Database' },
-    { id: 'security', icon: '🛡️', label: 'Security & Authentication', action: () => setShowSecurityModal(true) },
-    { id: 'portals', icon: '🖥️', label: 'Station Portal Access' },
-    { id: 'reordering', icon: '⇅', label: 'Menu Reordering' },
-    { id: 'tags', icon: '🏷️', label: 'Dietary Tags' },
+    { id: 'overview', icon: LayoutDashboard, label: 'Dashboard' },
+    { id: 'dishes', icon: UtensilsCrossed, label: 'Dishes', count: items.length },
+    { id: 'categories', icon: FolderTree, label: 'Categories', count: cats.length },
+    { id: 'staff', icon: Users, label: 'Staff & Accounts', count: staffList.length },
+    { id: 'payments', icon: CreditCard, label: 'Payment Setup' },
+    { id: 'contacts', icon: Share2, label: 'Social Media & Contacts' },
+    { id: 'qrcodes', icon: QrCode, label: 'Table QR Codes' },
+    { id: 'database', icon: Database, label: 'Backup & Database' },
+    { id: 'security', icon: ShieldCheck, label: 'Security & 2FA', action: () => setShowSecurityModal(true) },
+    { id: 'portals', icon: Monitor, label: 'Station Portals' },
+    { id: 'reordering', icon: ArrowUpDown, label: 'Menu Reordering' },
+    { id: 'tags', icon: Tag, label: 'Dietary Tags' },
   ];
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f4f7fe', color: '#1e293b', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
       {/* ========================================================================= */}
-      {/* 1. DEEP NAVY BLUE SIDEBAR (Matches uploaded UI screenshot)                */}
+      {/* 1. PREMIUM NAVY SAAS SIDEBAR                                              */}
       {/* ========================================================================= */}
       <aside
         style={{
-          width: 260,
-          background: '#111c44',
+          width: 268,
+          background: '#0f172a',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
@@ -490,8 +537,9 @@ alter publication supabase_realtime add table orders;`;
           padding: '24px 16px',
           boxSizing: 'border-box',
           zIndex: 100,
-          transition: 'transform 0.25s ease',
-          boxShadow: '4px 0 20px rgba(0, 0, 0, 0.08)',
+          boxShadow: '4px 0 24px rgba(15, 23, 42, 0.08)',
+          borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+          transition: 'transform 0.22s ease-in-out',
           ...(typeof window !== 'undefined' && window.innerWidth < 1024
             ? {
                 position: 'fixed',
@@ -502,20 +550,24 @@ alter publication supabase_realtime add table orders;`;
       >
         <div>
           {/* Logo & Hotel Brand */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28, paddingLeft: 8 }}>
-            <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(255,255,255,0.08)', display: 'grid', placeItems: 'center', fontSize: '1.4rem' }}>
-              🍽️
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28, padding: '4px 8px' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', display: 'grid', placeItems: 'center', color: '#ffffff', boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)' }}>
+              <UtensilsCrossed size={22} />
             </div>
             <div>
-              <b style={{ fontSize: '1.15rem', display: 'block', color: '#ffffff', letterSpacing: -0.3 }}>Royal Hotel</b>
-              <span style={{ fontSize: '.74rem', color: '#8f9bba', fontWeight: 500 }}>Restaurant Management</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <b style={{ fontSize: '1.15rem', color: '#ffffff', letterSpacing: '-0.3px', fontWeight: 800 }}>Royal Hotel</b>
+                <span style={{ fontSize: '.65rem', background: 'rgba(37, 99, 235, 0.25)', color: '#60a5fa', padding: '1px 6px', borderRadius: 6, fontWeight: 700 }}>PRO</span>
+              </div>
+              <span style={{ fontSize: '.75rem', color: '#94a3b8', fontWeight: 500 }}>Management System</span>
             </div>
           </div>
 
           {/* Navigation Links */}
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' }}>
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 'calc(100vh - 230px)', overflowY: 'auto' }}>
             {navItems.map((nav) => {
               const active = currentTab === nav.id;
+              const IconComponent = nav.icon;
               return (
                 <button
                   key={nav.id}
@@ -532,16 +584,16 @@ alter publication supabase_realtime add table orders;`;
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     width: '100%',
-                    padding: '11px 16px',
-                    borderRadius: 14,
+                    padding: '10px 14px',
+                    borderRadius: 12,
                     border: 'none',
                     background: active ? '#2563eb' : 'transparent',
-                    color: active ? '#ffffff' : '#a3aed0',
+                    color: active ? '#ffffff' : '#94a3b8',
                     fontWeight: active ? 700 : 500,
                     cursor: 'pointer',
                     textAlign: 'left',
-                    fontSize: '.9rem',
-                    transition: 'all 0.18s ease',
+                    fontSize: '.88rem',
+                    transition: 'all 0.16s ease',
                   }}
                   onMouseEnter={(e) => {
                     if (!active) {
@@ -552,20 +604,20 @@ alter publication supabase_realtime add table orders;`;
                   onMouseLeave={(e) => {
                     if (!active) {
                       e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = '#a3aed0';
+                      e.currentTarget.style.color = '#94a3b8';
                     }
                   }}
                 >
                   <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontSize: '1.1rem', width: 22, textAlign: 'center' }}>{nav.icon}</span>
+                    <IconComponent size={19} style={{ opacity: active ? 1 : 0.85 }} />
                     {nav.label}
                   </span>
                   {nav.count !== undefined && (
                     <span
                       style={{
                         fontSize: '.72rem',
-                        background: active ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
-                        color: active ? '#ffffff' : '#8f9bba',
+                        background: active ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.06)',
+                        color: active ? '#ffffff' : '#94a3b8',
                         padding: '2px 8px',
                         borderRadius: 999,
                         fontWeight: 700,
@@ -580,18 +632,18 @@ alter publication supabase_realtime add table orders;`;
           </nav>
         </div>
 
-        {/* Bottom User Profile & Logout */}
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', marginBottom: 10 }}>
+        {/* Bottom Profile & Logout */}
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', marginBottom: 8 }}>
             <div style={{ position: 'relative' }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#3b82f6', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '.95rem' }}>
-                👤
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', display: 'grid', placeItems: 'center', color: '#60a5fa', fontWeight: 800 }}>
+                A
               </div>
-              <span style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#22c55e', border: '2px solid #111c44' }} />
+              <span style={{ position: 'absolute', bottom: -1, right: -1, width: 10, height: 10, borderRadius: '50%', background: '#10b981', border: '2px solid #0f172a' }} />
             </div>
             <div style={{ overflow: 'hidden' }}>
-              <b style={{ color: '#ffffff', fontSize: '.88rem', display: 'block', lineHeight: 1.2 }}>Admin</b>
-              <span style={{ color: '#8f9bba', fontSize: '.75rem' }}>Manager</span>
+              <b style={{ color: '#ffffff', fontSize: '.86rem', display: 'block', lineHeight: 1.2 }}>Admin Portal</b>
+              <span style={{ color: '#94a3b8', fontSize: '.74rem' }}>{session.user?.email || 'admin@royalhotel.com'}</span>
             </div>
           </div>
 
@@ -602,20 +654,20 @@ alter publication supabase_realtime add table orders;`;
               alignItems: 'center',
               gap: 10,
               width: '100%',
-              padding: '10px 14px',
-              borderRadius: 12,
+              padding: '9px 12px',
+              borderRadius: 10,
               border: 'none',
               background: 'transparent',
-              color: '#ef4444',
+              color: '#f87171',
               cursor: 'pointer',
-              fontSize: '.88rem',
+              fontSize: '.85rem',
               fontWeight: 600,
               transition: 'background 0.15s ease',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            <span>🚪</span> Logout
+            <LogOut size={16} /> Logout
           </button>
         </div>
       </aside>
@@ -627,22 +679,22 @@ alter publication supabase_realtime add table orders;`;
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(3px)',
+            background: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(4px)',
             zIndex: 90,
           }}
         />
       )}
 
       {/* ========================================================================= */}
-      {/* 2. MAIN VIEW AREA (Light Theme with White Cards & Clean Stats)           */}
+      {/* 2. MAIN VIEW AREA (Light Theme with Inter Typography & Clean Cards)       */}
       {/* ========================================================================= */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowY: 'auto' }}>
-        {/* Top White Header Bar */}
+        {/* Top SaaS Header Bar */}
         <header
           style={{
             background: '#ffffff',
-            padding: '16px 32px',
+            padding: '14px 32px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -650,6 +702,7 @@ alter publication supabase_realtime add table orders;`;
             position: 'sticky',
             top: 0,
             zIndex: 40,
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -658,76 +711,93 @@ alter publication supabase_realtime add table orders;`;
               style={{
                 display: typeof window !== 'undefined' && window.innerWidth < 1024 ? 'grid' : 'none',
                 placeItems: 'center',
-                width: 38,
-                height: 38,
+                width: 36,
+                height: 36,
                 borderRadius: 10,
                 border: '1px solid #e2e8f0',
                 background: '#ffffff',
                 cursor: 'pointer',
-                fontSize: '1.2rem',
+                color: '#0f172a',
               }}
             >
-              ☰
+              <Menu size={18} />
             </button>
             <div>
-              <span style={{ fontSize: '.78rem', color: '#8f9bba', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Pages / {currentTab}
+              <span style={{ fontSize: '.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Platform / {currentTab}
               </span>
-              <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 800, color: '#1e293b' }}>
+              <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>
                 {navItems.find((n) => n.id === currentTab)?.label || 'Dashboard'}
               </h1>
             </div>
           </div>
 
-          {/* Right Header: Notifications & Admin Profile */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          {/* Right Header: Fast Portals + Notification + Security Chip */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <a href="/cashier" target="_blank" className="btn btn-secondary btn-sm" title="Open Cashier POS">
+                <CreditCard size={14} /> Cashier
+              </a>
+              <a href="/kitchen" target="_blank" className="btn btn-secondary btn-sm" title="Open Kitchen KDS">
+                <UtensilsCrossed size={14} /> Kitchen
+              </a>
+              <a href="/waiter" target="_blank" className="btn btn-secondary btn-sm" title="Open Waiter Tablet View">
+                <Users size={14} /> Waiter
+              </a>
+              <a href="/" target="_blank" className="btn btn-secondary btn-sm" title="Open Customer Menu">
+                <Globe size={14} /> Menu
+              </a>
+            </div>
+
             {/* Notification Bell */}
-            <div style={{ position: 'relative', cursor: 'pointer' }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#f4f7fe', display: 'grid', placeItems: 'center', fontSize: '1.1rem' }}>
-                🔔
+            <div style={{ position: 'relative', cursor: 'pointer', marginLeft: 4 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0', display: 'grid', placeItems: 'center', color: '#475569' }}>
+                <Bell size={18} />
               </div>
               <span
                 style={{
                   position: 'absolute',
-                  top: -2,
-                  right: -2,
+                  top: -3,
+                  right: -3,
                   background: '#ef4444',
-                  color: '#fff',
+                  color: '#ffffff',
                   borderRadius: '50%',
-                  width: 18,
-                  height: 18,
-                  fontSize: '.68rem',
+                  width: 17,
+                  height: 17,
+                  fontSize: '.65rem',
                   fontWeight: 800,
                   display: 'grid',
                   placeItems: 'center',
-                  boxShadow: '0 2px 6px rgba(239, 68, 68, 0.4)',
                 }}
               >
                 3
               </span>
             </div>
 
-            {/* Profile Dropdown */}
+            {/* Profile Chip */}
             <div
               onClick={() => setShowSecurityModal(true)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
-                padding: '6px 12px',
+                padding: '5px 12px',
                 borderRadius: 999,
-                background: '#f4f7fe',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
                 cursor: 'pointer',
                 transition: 'background 0.15s ease',
               }}
+              title="Click to view 2FA & Password Settings"
             >
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#2563eb', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '.85rem' }}>
-                👤
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#2563eb', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '.78rem' }}>
+                A
               </div>
               <div style={{ textAlign: 'left' }}>
-                <b style={{ fontSize: '.84rem', color: '#1e293b', display: 'block', lineHeight: 1.1 }}>Admin</b>
-                <span style={{ fontSize: '.7rem', color: '#8f9bba' }}>Manager</span>
+                <b style={{ fontSize: '.82rem', color: '#0f172a', display: 'block', lineHeight: 1.1 }}>Manager</b>
+                <span style={{ fontSize: '.68rem', color: '#10b981', fontWeight: 700 }}>● Online</span>
               </div>
+              <ChevronDown size={14} color="#94a3b8" />
             </div>
           </div>
         </header>
@@ -741,99 +811,112 @@ alter publication supabase_realtime add table orders;`;
                 padding: '12px 18px',
                 borderRadius: 14,
                 marginBottom: 20,
-                background: msg.bad ? '#fee2e2' : '#dcfce7',
-                border: `1px solid ${msg.bad ? '#f87171' : '#4ade80'}`,
+                background: msg.bad ? '#fef2f2' : '#f0fdf4',
+                border: `1px solid ${msg.bad ? '#fecaca' : '#bbf7d0'}`,
                 color: msg.bad ? '#991b1b' : '#166534',
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
               }}
             >
-              <span>{msg.text}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {msg.bad ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
+                {msg.text}
+              </span>
               <button onClick={() => setMsg({ text: '', bad: false })} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 700, color: 'inherit' }}>
-                ✕
+                <X size={16} />
               </button>
             </div>
           )}
 
           {/* =================================================================== */}
-          {/* TAB 1: DASHBOARD OVERVIEW (Exact match with uploaded picture)        */}
+          {/* TAB 1: DASHBOARD OVERVIEW (Upgraded with Lucide & Smooth Spline)    */}
           {/* =================================================================== */}
           {currentTab === 'overview' && (
             <div>
-              {/* Welcome Subtitle */}
-              <div style={{ marginBottom: 24 }}>
-                <h2 style={{ fontSize: '1.65rem', fontWeight: 800, margin: '0 0 4px', color: '#1e293b' }}>Dashboard</h2>
-                <p style={{ margin: 0, color: '#64748b', fontSize: '.95rem' }}>
-                  Welcome back, Admin! Here&apos;s what&apos;s happening with your restaurant today.
-                </p>
+              {/* Header Title */}
+              <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <h2 style={{ fontSize: '1.65rem', fontWeight: 800, margin: '0 0 4px', color: '#0f172a' }}>Dashboard Overview</h2>
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '.92rem' }}>
+                    Welcome back! Here is what is happening with your hotel restaurant operations today.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={load} className="btn btn-secondary btn-sm">
+                    <Clock size={14} /> Refresh Live Data
+                  </button>
+                  <button onClick={backup} className="btn btn-primary btn-sm">
+                    <Download size={14} /> Export Backup
+                  </button>
+                </div>
               </div>
 
               {/* 4 Stat Cards Row */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 18, marginBottom: 24 }}>
                 {/* 1. Total Dishes */}
-                <div style={statCardStyle}>
-                  <div style={{ width: 54, height: 54, borderRadius: '50%', background: '#10b981', display: 'grid', placeItems: 'center', color: '#fff', fontSize: '1.5rem', flexShrink: 0 }}>
-                    🍽️
+                <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: '#ecfdf5', color: '#059669', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                    <UtensilsCrossed size={24} />
                   </div>
                   <div>
-                    <span style={{ fontSize: '.84rem', color: '#64748b', fontWeight: 600 }}>Total Dishes</span>
-                    <b style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', display: 'block', lineHeight: 1.15 }}>
+                    <span style={{ fontSize: '.82rem', color: '#64748b', fontWeight: 600 }}>Total Dishes</span>
+                    <b style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', display: 'block', lineHeight: 1.15 }}>
                       {items.length || 48}
                     </b>
-                    <span style={{ fontSize: '.78rem', color: '#10b981', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                      ↑ +2 this week
+                    <span style={{ fontSize: '.76rem', color: '#059669', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      <TrendingUp size={12} /> {items.filter((i) => i.available).length} in stock
                     </span>
                   </div>
                 </div>
 
                 {/* 2. Categories */}
-                <div style={statCardStyle}>
-                  <div style={{ width: 54, height: 54, borderRadius: '50%', background: '#8b5cf6', display: 'grid', placeItems: 'center', color: '#fff', fontSize: '1.5rem', flexShrink: 0 }}>
-                    ⊞
+                <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: '#f5f3ff', color: '#7c3aed', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                    <FolderTree size={24} />
                   </div>
                   <div>
-                    <span style={{ fontSize: '.84rem', color: '#64748b', fontWeight: 600 }}>Categories</span>
-                    <b style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', display: 'block', lineHeight: 1.15 }}>
+                    <span style={{ fontSize: '.82rem', color: '#64748b', fontWeight: 600 }}>Categories</span>
+                    <b style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', display: 'block', lineHeight: 1.15 }}>
                       {cats.length || 12}
                     </b>
-                    <span style={{ fontSize: '.78rem', color: '#64748b', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                      — No change
+                    <span style={{ fontSize: '.76rem', color: '#64748b', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      Active menu groups
                     </span>
                   </div>
                 </div>
 
                 {/* 3. Active Staff */}
-                <div style={statCardStyle}>
-                  <div style={{ width: 54, height: 54, borderRadius: '50%', background: '#3b82f6', display: 'grid', placeItems: 'center', color: '#fff', fontSize: '1.5rem', flexShrink: 0 }}>
-                    👥
+                <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: '#eff6ff', color: '#2563eb', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                    <Users size={24} />
                   </div>
                   <div>
-                    <span style={{ fontSize: '.84rem', color: '#64748b', fontWeight: 600 }}>Active Staff</span>
-                    <b style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', display: 'block', lineHeight: 1.15 }}>
+                    <span style={{ fontSize: '.82rem', color: '#64748b', fontWeight: 600 }}>Active Staff</span>
+                    <b style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', display: 'block', lineHeight: 1.15 }}>
                       {staffList.length || 8}
                     </b>
-                    <span style={{ fontSize: '.78rem', color: '#10b981', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                      ↑ +{onDutyCount || 1} on duty today
+                    <span style={{ fontSize: '.76rem', color: '#059669', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      <UserCheck size={12} /> {onDutyCount || 1} on duty now
                     </span>
                   </div>
                 </div>
 
                 {/* 4. Payment Setup */}
-                <div style={statCardStyle}>
-                  <div style={{ width: 54, height: 54, borderRadius: '50%', background: '#f59e0b', display: 'grid', placeItems: 'center', color: '#fff', fontSize: '1.5rem', flexShrink: 0 }}>
-                    💳
+                <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: '#fffbeb', color: '#d97706', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                    <CreditCard size={24} />
                   </div>
                   <div>
-                    <span style={{ fontSize: '.84rem', color: '#64748b', fontWeight: 600 }}>Payment Setup</span>
+                    <span style={{ fontSize: '.82rem', color: '#64748b', fontWeight: 600 }}>Payment Setup</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                      <span style={{ color: '#10b981', fontSize: '1.1rem' }}>✓</span>
-                      <b style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981' }}>
-                        {st.telebirr_number || st.cbe_number ? 'Configured' : 'Configured'}
-                      </b>
+                      <CheckCircle2 size={16} color="#059669" />
+                      <b style={{ fontSize: '1.2rem', fontWeight: 800, color: '#059669' }}>Configured</b>
                     </div>
-                    <span style={{ fontSize: '.78rem', color: '#64748b', fontWeight: 500, display: 'block', marginTop: 4 }}>
+                    <span style={{ fontSize: '.76rem', color: '#64748b', fontWeight: 500, display: 'block', marginTop: 4 }}>
                       Telebirr & CBE Bank
                     </span>
                   </div>
@@ -843,28 +926,28 @@ alter publication supabase_realtime add table orders;`;
               {/* Middle Grid: Sales Overview Chart + Top Dishes + Quick Actions */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 20, marginBottom: 24 }}>
                 {/* 1. Sales Overview Chart (Span 5 cols) */}
-                <div style={{ ...whiteBoxStyle, gridColumn: 'span 5' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div className="card" style={{ gridColumn: 'span 5' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#1e293b' }}>Sales Overview</h3>
-                      <span style={{ fontSize: '.8rem', color: '#8f9bba' }}>Today&apos;s sales (ETB)</span>
+                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Sales Overview</h3>
+                      <span style={{ fontSize: '.8rem', color: '#64748b' }}>Today&apos;s verified sales (ETB)</span>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <b style={{ fontSize: '1.55rem', fontWeight: 800, color: '#1e293b', display: 'block' }}>
-                        {totalSalesToday.toLocaleString()}
+                      <b style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', display: 'block' }}>
+                        {totalSalesToday.toLocaleString()} ETB
                       </b>
-                      <span style={{ fontSize: '.75rem', background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: 999, fontWeight: 700 }}>
-                        ↗ +12% compared to yesterday
+                      <span style={{ fontSize: '.75rem', background: '#ecfdf5', color: '#059669', padding: '2px 8px', borderRadius: 999, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <TrendingUp size={12} /> +12% vs yesterday
                       </span>
                     </div>
                   </div>
 
-                  {/* SVG Spline Curve Area Chart matching design */}
-                  <div style={{ marginTop: 16 }}>
+                  {/* SVG Spline Curve Area Chart with Interactive Hover */}
+                  <div style={{ position: 'relative', marginTop: 8 }}>
                     <svg viewBox="0 0 500 210" style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
                       <defs>
-                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#2563eb" stopOpacity="0.25" />
+                        <linearGradient id="chartGradientSaaS" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#2563eb" stopOpacity="0.28" />
                           <stop offset="100%" stopColor="#2563eb" stopOpacity="0.0" />
                         </linearGradient>
                       </defs>
@@ -873,18 +956,18 @@ alter publication supabase_realtime add table orders;`;
                       <line x1="40" y1="30" x2="480" y2="30" stroke="#f1f5f9" strokeDasharray="4 4" />
                       <line x1="40" y1="75" x2="480" y2="75" stroke="#f1f5f9" strokeDasharray="4 4" />
                       <line x1="40" y1="120" x2="480" y2="120" stroke="#f1f5f9" strokeDasharray="4 4" />
-                      <line x1="40" y1="165" x2="480" y2="165" stroke="#f1f5f9" />
+                      <line x1="40" y1="165" x2="480" y2="165" stroke="#e2e8f0" />
 
                       {/* Y-axis Labels */}
-                      <text x="5" y="34" fill="#94a3b8" fontSize="10">2,000</text>
-                      <text x="5" y="79" fill="#94a3b8" fontSize="10">1,500</text>
-                      <text x="5" y="124" fill="#94a3b8" fontSize="10">1,000</text>
-                      <text x="16" y="169" fill="#94a3b8" fontSize="10">500</text>
+                      <text x="5" y="34" fill="#94a3b8" fontSize="10" fontWeight="600">2,000</text>
+                      <text x="5" y="79" fill="#94a3b8" fontSize="10" fontWeight="600">1,500</text>
+                      <text x="5" y="124" fill="#94a3b8" fontSize="10" fontWeight="600">1,000</text>
+                      <text x="16" y="169" fill="#94a3b8" fontSize="10" fontWeight="600">500</text>
 
                       {/* Filled Area Gradient */}
                       <path
                         d="M 50 160 C 90 145, 110 135, 130 130 C 160 120, 180 148, 210 140 C 240 132, 260 115, 290 110 C 320 105, 340 135, 370 125 C 400 115, 430 80, 460 70 L 460 165 L 50 165 Z"
-                        fill="url(#chartGradient)"
+                        fill="url(#chartGradientSaaS)"
                       />
 
                       {/* Curved Line */}
@@ -897,49 +980,91 @@ alter publication supabase_realtime add table orders;`;
                       />
 
                       {/* Coordinate Dots */}
-                      <circle cx="50" cy="160" r="4.5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="130" cy="130" r="4.5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="210" cy="140" r="4.5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="290" cy="110" r="4.5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="370" cy="125" r="4.5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="460" cy="70" r="5" fill="#2563eb" stroke="#ffffff" strokeWidth="2.5" />
+                      {[
+                        { cx: 50, cy: 160, time: '10 AM', val: '450 ETB' },
+                        { cx: 130, cy: 130, time: '12 PM', val: '820 ETB' },
+                        { cx: 210, cy: 140, time: '2 PM', val: '710 ETB' },
+                        { cx: 290, cy: 110, time: '4 PM', val: '1,120 ETB' },
+                        { cx: 370, cy: 125, time: '6 PM', val: '980 ETB' },
+                        { cx: 460, cy: 70, time: '8 PM', val: '1,650 ETB' },
+                      ].map((pt, i) => (
+                        <circle
+                          key={i}
+                          cx={pt.cx}
+                          cy={pt.cy}
+                          r={activeChartPoint === i ? 6.5 : 4.5}
+                          fill="#2563eb"
+                          stroke="#ffffff"
+                          strokeWidth="2.5"
+                          style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+                          onMouseEnter={() => setActiveChartPoint(i)}
+                          onMouseLeave={() => setActiveChartPoint(null)}
+                        />
+                      ))}
 
                       {/* X-axis Labels */}
-                      <text x="40" y="190" fill="#94a3b8" fontSize="11" textAnchor="middle">10 AM</text>
-                      <text x="130" y="190" fill="#94a3b8" fontSize="11" textAnchor="middle">12 PM</text>
-                      <text x="210" y="190" fill="#94a3b8" fontSize="11" textAnchor="middle">2 PM</text>
-                      <text x="290" y="190" fill="#94a3b8" fontSize="11" textAnchor="middle">4 PM</text>
-                      <text x="370" y="190" fill="#94a3b8" fontSize="11" textAnchor="middle">6 PM</text>
-                      <text x="460" y="190" fill="#94a3b8" fontSize="11" textAnchor="middle">8 PM</text>
+                      <text x="50" y="190" fill="#64748b" fontSize="11" textAnchor="middle" fontWeight="500">10 AM</text>
+                      <text x="130" y="190" fill="#64748b" fontSize="11" textAnchor="middle" fontWeight="500">12 PM</text>
+                      <text x="210" y="190" fill="#64748b" fontSize="11" textAnchor="middle" fontWeight="500">2 PM</text>
+                      <text x="290" y="190" fill="#64748b" fontSize="11" textAnchor="middle" fontWeight="500">4 PM</text>
+                      <text x="370" y="190" fill="#64748b" fontSize="11" textAnchor="middle" fontWeight="500">6 PM</text>
+                      <text x="460" y="190" fill="#64748b" fontSize="11" textAnchor="middle" fontWeight="500">8 PM</text>
                     </svg>
+
+                    {/* Chart Tooltip */}
+                    {activeChartPoint !== null && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 10,
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          background: '#0f172a',
+                          color: '#ffffff',
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          fontSize: '.75rem',
+                          fontWeight: 700,
+                          pointerEvents: 'none',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        }}
+                      >
+                        Peak Service Time
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* 2. Top Dishes (Span 4 cols) */}
-                <div style={{ ...whiteBoxStyle, gridColumn: 'span 4' }}>
-                  <div style={{ marginBottom: 14 }}>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#1e293b' }}>Top Dishes</h3>
-                    <span style={{ fontSize: '.8rem', color: '#8f9bba' }}>Most ordered today</span>
+                <div className="card" style={{ gridColumn: 'span 4' }}>
+                  <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Top Dishes</h3>
+                      <span style={{ fontSize: '.8rem', color: '#64748b' }}>Most ordered today</span>
+                    </div>
+                    <button onClick={() => setCurrentTab('dishes')} className="btn btn-ghost btn-sm" style={{ padding: '2px 8px', fontSize: '.75rem' }}>
+                      View All
+                    </button>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {topDishesList.map((dish, idx) => (
-                      <div key={dish.id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                      <div key={dish.id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           {dish.image_url ? (
-                            <img src={dish.image_url} alt={dish.name} style={{ width: 44, height: 44, borderRadius: 12, objectFit: 'cover' }} />
+                            <img src={dish.image_url} alt={dish.name} style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover' }} />
                           ) : (
-                            <div style={{ width: 44, height: 44, borderRadius: 12, background: '#f1f5f9', display: 'grid', placeItems: 'center', fontSize: '1.3rem' }}>
-                              🍽️
+                            <div style={{ width: 42, height: 42, borderRadius: 10, background: '#f1f5f9', display: 'grid', placeItems: 'center', color: '#64748b' }}>
+                              <UtensilsCrossed size={18} />
                             </div>
                           )}
                           <div>
-                            <b style={{ fontSize: '.88rem', color: '#1e293b', display: 'block', lineHeight: 1.2 }}>{dish.name}</b>
-                            <span style={{ fontSize: '.76rem', color: '#8f9bba' }}>{dish.orders || (48 - idx * 7)} orders</span>
+                            <b style={{ fontSize: '.88rem', color: '#0f172a', display: 'block', lineHeight: 1.2 }}>{dish.name}</b>
+                            <span style={{ fontSize: '.76rem', color: '#64748b' }}>{dish.orders || (48 - idx * 7)} orders</span>
                           </div>
                         </div>
 
-                        <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '.8rem', fontWeight: 700, padding: '4px 10px', borderRadius: 8 }}>
+                        <span className="badge badge-gray" style={{ fontWeight: 700 }}>
                           {dish.orders || (48 - idx * 7)}
                         </span>
                       </div>
@@ -948,61 +1073,75 @@ alter publication supabase_realtime add table orders;`;
                 </div>
 
                 {/* 3. Quick Actions 2x3 Grid (Span 3 cols) */}
-                <div style={{ ...whiteBoxStyle, gridColumn: 'span 3' }}>
+                <div className="card" style={{ gridColumn: 'span 3' }}>
                   <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: '#2563eb', fontSize: '1.2rem' }}>⚡</span>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#1e293b' }}>Quick Actions</h3>
+                    <Sparkles size={18} color="#2563eb" />
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Quick Actions</h3>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    <button onClick={openAddDish} style={quickActionButtonStyle}>
-                      <span style={{ ...actionIconCircleStyle, background: '#eff6ff', color: '#2563eb' }}>➕</span>
-                      <span style={{ fontSize: '.8rem', fontWeight: 700, color: '#1e293b' }}>Add Dish</span>
+                    <button onClick={openAddDish} className="btn btn-secondary" style={{ flexDirection: 'column', padding: '14px 6px', gap: 8, height: 'auto' }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 8, background: '#eff6ff', color: '#2563eb', display: 'grid', placeItems: 'center' }}>
+                        <Plus size={18} />
+                      </div>
+                      <span style={{ fontSize: '.78rem', fontWeight: 700, color: '#0f172a' }}>Add Dish</span>
                     </button>
 
-                    <button onClick={() => setShowAddCatModal(true)} style={quickActionButtonStyle}>
-                      <span style={{ ...actionIconCircleStyle, background: '#eff6ff', color: '#2563eb' }}>⊞</span>
-                      <span style={{ fontSize: '.8rem', fontWeight: 700, color: '#1e293b' }}>Add Category</span>
+                    <button onClick={() => setShowAddCatModal(true)} className="btn btn-secondary" style={{ flexDirection: 'column', padding: '14px 6px', gap: 8, height: 'auto' }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 8, background: '#eff6ff', color: '#2563eb', display: 'grid', placeItems: 'center' }}>
+                        <FolderTree size={18} />
+                      </div>
+                      <span style={{ fontSize: '.78rem', fontWeight: 700, color: '#0f172a' }}>Add Category</span>
                     </button>
 
-                    <button onClick={() => setShowAddStaffModal(true)} style={quickActionButtonStyle}>
-                      <span style={{ ...actionIconCircleStyle, background: '#eff6ff', color: '#2563eb' }}>👤</span>
-                      <span style={{ fontSize: '.8rem', fontWeight: 700, color: '#1e293b' }}>Add Staff</span>
+                    <button onClick={() => setShowAddStaffModal(true)} className="btn btn-secondary" style={{ flexDirection: 'column', padding: '14px 6px', gap: 8, height: 'auto' }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 8, background: '#eff6ff', color: '#2563eb', display: 'grid', placeItems: 'center' }}>
+                        <Users size={18} />
+                      </div>
+                      <span style={{ fontSize: '.78rem', fontWeight: 700, color: '#0f172a' }}>Add Staff</span>
                     </button>
 
-                    <button onClick={() => setShowQrModal(true)} style={quickActionButtonStyle}>
-                      <span style={{ ...actionIconCircleStyle, background: '#eff6ff', color: '#2563eb' }}>⚏</span>
-                      <span style={{ fontSize: '.8rem', fontWeight: 700, color: '#1e293b' }}>Generate QR</span>
+                    <button onClick={() => setShowQrModal(true)} className="btn btn-secondary" style={{ flexDirection: 'column', padding: '14px 6px', gap: 8, height: 'auto' }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 8, background: '#eff6ff', color: '#2563eb', display: 'grid', placeItems: 'center' }}>
+                        <QrCode size={18} />
+                      </div>
+                      <span style={{ fontSize: '.78rem', fontWeight: 700, color: '#0f172a' }}>Generate QR</span>
                     </button>
 
-                    <button onClick={backup} style={quickActionButtonStyle}>
-                      <span style={{ ...actionIconCircleStyle, background: '#eff6ff', color: '#2563eb' }}>💾</span>
-                      <span style={{ fontSize: '.8rem', fontWeight: 700, color: '#1e293b' }}>Download Backup</span>
+                    <button onClick={backup} className="btn btn-secondary" style={{ flexDirection: 'column', padding: '14px 6px', gap: 8, height: 'auto' }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 8, background: '#eff6ff', color: '#2563eb', display: 'grid', placeItems: 'center' }}>
+                        <Database size={18} />
+                      </div>
+                      <span style={{ fontSize: '.78rem', fontWeight: 700, color: '#0f172a' }}>Backup</span>
                     </button>
 
-                    <button onClick={() => setCurrentTab('overview')} style={quickActionButtonStyle}>
-                      <span style={{ ...actionIconCircleStyle, background: '#eff6ff', color: '#2563eb' }}>📊</span>
-                      <span style={{ fontSize: '.8rem', fontWeight: 700, color: '#1e293b' }}>View Reports</span>
+                    <button onClick={() => window.open('/cashier', '_blank')} className="btn btn-secondary" style={{ flexDirection: 'column', padding: '14px 6px', gap: 8, height: 'auto' }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 8, background: '#eff6ff', color: '#2563eb', display: 'grid', placeItems: 'center' }}>
+                        <FileText size={18} />
+                      </div>
+                      <span style={{ fontSize: '.78rem', fontWeight: 700, color: '#0f172a' }}>POS Orders</span>
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Bottom Row: Recent Orders Table (left) + Table QR Banner Card (right) */}
+              {/* Bottom Row: Recent Orders Table (left) + Table QR Showcase Card (right) */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 20 }}>
                 {/* Recent Orders Table (Span 8 cols) */}
-                <div style={{ ...whiteBoxStyle, gridColumn: 'span 8', padding: '20px 24px' }}>
+                <div className="card" style={{ gridColumn: 'span 8', padding: '20px 24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: '1.2rem', color: '#2563eb' }}>📋</span>
-                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#1e293b' }}>Recent Orders</h3>
+                      <FileText size={20} color="#2563eb" />
+                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Recent Orders</h3>
                     </div>
-                    <button
-                      onClick={() => window.open('/cashier', '_blank')}
-                      style={{ border: 'none', background: 'transparent', color: '#2563eb', fontWeight: 700, fontSize: '.85rem', cursor: 'pointer' }}
+                    <a
+                      href="/cashier"
+                      target="_blank"
+                      className="btn btn-ghost btn-sm"
+                      style={{ color: '#2563eb', fontWeight: 700 }}
                     >
-                      View All →
-                    </button>
+                      View Live POS <ExternalLink size={13} />
+                    </a>
                   </div>
 
                   <div style={{ overflowX: 'auto' }}>
@@ -1020,16 +1159,18 @@ alter publication supabase_realtime add table orders;`;
                       <tbody>
                         {displayOrders.map((ord) => {
                           const statusConfig = {
-                            preparing: { bg: '#fef3c7', text: '#d97706', label: 'Preparing', dot: '🟡' },
-                            cooking: { bg: '#fef3c7', text: '#d97706', label: 'Preparing', dot: '🟡' },
-                            pending_payment: { bg: '#fef3c7', text: '#d97706', label: 'Preparing', dot: '🟡' },
-                            confirmed: { bg: '#dcfce7', text: '#16a34a', label: 'Accepted', dot: '🟢' },
-                            ready: { bg: '#dbeafe', text: '#2563eb', label: 'Finished', dot: '🔵' },
-                            finished: { bg: '#dbeafe', text: '#2563eb', label: 'Finished', dot: '🔵' },
-                            delivered: { bg: '#f3e8ff', text: '#7c3aed', label: 'Served', dot: '🟣' },
-                            completed: { bg: '#dcfce7', text: '#16a34a', label: 'Paid', dot: '🟢' },
-                            paid: { bg: '#dcfce7', text: '#16a34a', label: 'Paid', dot: '🟢' },
-                          }[ord.status] || { bg: '#f1f5f9', text: '#64748b', label: ord.status, dot: '⚪' };
+                            preparing: { badge: 'badge-amber', label: 'Preparing', icon: Clock },
+                            cooking: { badge: 'badge-amber', label: 'Cooking', icon: Clock },
+                            pending_payment: { badge: 'badge-amber', label: 'Pending Payment', icon: Clock },
+                            confirmed: { badge: 'badge-green', label: 'Accepted', icon: Check },
+                            ready: { badge: 'badge-blue', label: 'Plated & Ready', icon: CheckCircle2 },
+                            finished: { badge: 'badge-blue', label: 'Ready', icon: CheckCircle2 },
+                            delivered: { badge: 'badge-purple', label: 'Served', icon: UserCheck },
+                            completed: { badge: 'badge-green', label: 'Paid & Closed', icon: CheckCircle2 },
+                            paid: { badge: 'badge-green', label: 'Paid', icon: CheckCircle2 },
+                          }[ord.status] || { badge: 'badge-gray', label: ord.status, icon: Clock };
+
+                          const StatusIcon = statusConfig.icon;
 
                           const itemsSummary = Array.isArray(ord.items)
                             ? ord.items.map((i) => i.name).slice(0, 2).join(', ')
@@ -1040,33 +1181,21 @@ alter publication supabase_realtime add table orders;`;
                             : '12:30 PM';
 
                           return (
-                            <tr key={ord.id} style={{ borderBottom: '1px solid #f8fafc' }}>
-                              <td style={{ padding: '14px 12px', fontWeight: 700, color: '#1e293b' }}>#{ord.order_number || ord.id}</td>
-                              <td style={{ padding: '14px 12px', color: '#64748b' }}>{ord.table_number || 'General'}</td>
-                              <td style={{ padding: '14px 12px', color: '#475569', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <tr key={ord.id} style={{ borderBottom: '1px solid #f8fafc', transition: 'background 0.12s ease' }}>
+                              <td style={{ padding: '13px 12px', fontWeight: 700, color: '#0f172a' }}>#{ord.order_number || ord.id}</td>
+                              <td style={{ padding: '13px 12px', color: '#64748b' }}>Table {ord.table_number || 'General'}</td>
+                              <td style={{ padding: '13px 12px', color: '#334155', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {itemsSummary}
                               </td>
-                              <td style={{ padding: '14px 12px', fontWeight: 800, color: '#1e293b' }}>
-                                ETB {ord.total || 0}
+                              <td style={{ padding: '13px 12px', fontWeight: 800, color: '#0f172a' }}>
+                                {ord.total || 0} ETB
                               </td>
-                              <td style={{ padding: '14px 12px' }}>
-                                <span
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 5,
-                                    background: statusConfig.bg,
-                                    color: statusConfig.text,
-                                    padding: '3px 10px',
-                                    borderRadius: 999,
-                                    fontSize: '.75rem',
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  <span>{statusConfig.dot}</span> {statusConfig.label}
+                              <td style={{ padding: '13px 12px' }}>
+                                <span className={`badge ${statusConfig.badge}`}>
+                                  <StatusIcon size={12} /> {statusConfig.label}
                                 </span>
                               </td>
-                              <td style={{ padding: '14px 12px', color: '#94a3b8', fontSize: '.8rem' }}>{timeFormatted}</td>
+                              <td style={{ padding: '13px 12px', color: '#94a3b8', fontSize: '.78rem' }}>{timeFormatted}</td>
                             </tr>
                           );
                         })}
@@ -1075,53 +1204,34 @@ alter publication supabase_realtime add table orders;`;
                   </div>
                 </div>
 
-                {/* Table QR Codes Card (Span 4 cols - matches photo in uploaded UI) */}
-                <div style={{ ...whiteBoxStyle, gridColumn: 'span 4', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  {/* Photo Header */}
+                {/* Table QR Codes Showcase Card (Span 4 cols) */}
+                <div className="card" style={{ gridColumn: 'span 4', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ height: 160, position: 'relative', overflow: 'hidden' }}>
                     <img
                       src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=700&q=80"
                       alt="Restaurant Table with QR Stand"
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.5))' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(15,23,42,0.1), rgba(15,23,42,0.65))' }} />
                   </div>
 
                   <div style={{ padding: 22, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                        <span style={{ fontSize: '1.4rem', color: '#10b981' }}>⚏</span>
-                        <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#1e293b' }}>Table QR Codes</h4>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <QrCode size={20} color="#059669" />
+                        <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Table QR Stands</h4>
                       </div>
-                      <p style={{ margin: 0, fontSize: '.85rem', color: '#64748b' }}>
-                        Generate unique QR codes for each table. Guests scan with their phone camera to open the live menu instantly.
+                      <p style={{ margin: 0, fontSize: '.84rem', color: '#64748b', lineHeight: 1.5 }}>
+                        Generate high-resolution QR cards tagged with table numbers. Guests scan to place orders directly without downloading an app.
                       </p>
                     </div>
 
                     <button
                       onClick={() => setShowQrModal(true)}
-                      style={{
-                        marginTop: 18,
-                        width: '100%',
-                        padding: '12px 18px',
-                        borderRadius: 12,
-                        background: '#059669',
-                        color: '#ffffff',
-                        border: 'none',
-                        fontWeight: 700,
-                        fontSize: '.9rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        boxShadow: '0 4px 14px rgba(5, 150, 105, 0.3)',
-                        transition: 'transform 0.15s ease',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+                      className="btn btn-success"
+                      style={{ marginTop: 18, width: '100%', padding: '11px 16px' }}
                     >
-                      <span>⚏</span> Generate QR Code
+                      <QrCode size={16} /> Generate Table QR Code
                     </button>
                   </div>
                 </div>
@@ -1136,28 +1246,31 @@ alter publication supabase_realtime add table orders;`;
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
                 <div>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#1e293b' }}>Dishes & Menu</h2>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#0f172a' }}>Dishes & Menu Catalog</h2>
                   <p style={{ margin: 0, color: '#64748b', fontSize: '.9rem' }}>
-                    Manage food items, prices, dietary tags, and photos shown to customers.
+                    Manage food items, photos, bilingual descriptions, prices, and stock availability.
                   </p>
                 </div>
-                <button onClick={openAddDish} style={primaryBtnStyle}>
-                  ➕ Add New Dish
+                <button onClick={openAddDish} className="btn btn-primary">
+                  <Plus size={16} /> Add New Dish
                 </button>
               </div>
 
-              {/* Filter Row */}
-              <div style={{ ...whiteBoxStyle, padding: '14px 18px', marginBottom: 18, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                <input
-                  placeholder="🔍 Search dishes by name or description..."
-                  value={dishSearch}
-                  onChange={(e) => setDishSearch(e.target.value)}
-                  style={{ ...inputStyle, flex: 2, minWidth: 220, margin: 0 }}
-                />
+              {/* Filter Controls */}
+              <div className="card" style={{ padding: '14px 18px', marginBottom: 18, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ position: 'relative', flex: 2, minWidth: 240 }}>
+                  <Search size={16} style={{ position: 'absolute', left: 14, top: 13, color: '#94a3b8' }} />
+                  <input
+                    placeholder="Search dishes by name, Amharic name, or description..."
+                    value={dishSearch}
+                    onChange={(e) => setDishSearch(e.target.value)}
+                    style={{ paddingLeft: 38 }}
+                  />
+                </div>
                 <select
                   value={selectedCatFilter}
                   onChange={(e) => setSelectedCatFilter(e.target.value)}
-                  style={{ ...inputStyle, flex: 1, minWidth: 160, margin: 0 }}
+                  style={{ flex: 1, minWidth: 180 }}
                 >
                   <option value="all">All Categories ({items.length})</option>
                   {cats.map((c) => (
@@ -1169,18 +1282,18 @@ alter publication supabase_realtime add table orders;`;
                 </select>
               </div>
 
-              {/* Dishes Grid */}
-              <div style={whiteBoxStyle}>
+              {/* Dishes List */}
+              <div className="card">
                 {filteredDishes.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '48px 0' }}>
-                    <div style={{ fontSize: '2.5rem', marginBottom: 10 }}>🍽️</div>
-                    <p style={{ color: '#64748b', fontWeight: 600 }}>No dishes found matching your search.</p>
-                    <button onClick={openAddDish} style={{ ...primaryBtnStyle, marginTop: 10 }}>
-                      ➕ Add the First Dish
+                    <UtensilsCrossed size={42} style={{ color: '#cbd5e1', margin: '0 auto 12px' }} />
+                    <p style={{ color: '#64748b', fontWeight: 600 }}>No dishes found matching your filter criteria.</p>
+                    <button onClick={openAddDish} className="btn btn-primary" style={{ marginTop: 10 }}>
+                      <Plus size={15} /> Add First Dish
                     </button>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {filteredDishes.map((i) => (
                       <div
                         key={i.id}
@@ -1188,61 +1301,58 @@ alter publication supabase_realtime add table orders;`;
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          padding: '12px 14px',
+                          padding: '12px 16px',
                           border: '1px solid #f1f5f9',
                           borderRadius: 14,
                           background: i.available ? '#ffffff' : '#f8fafc',
                           opacity: i.available ? 1 : 0.65,
                           gap: 14,
+                          transition: 'border-color 0.15s ease',
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                           {i.image_url ? (
-                            <img src={i.image_url} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover' }} />
+                            <img src={i.image_url} alt="" style={{ width: 54, height: 54, borderRadius: 12, objectFit: 'cover' }} />
                           ) : (
-                            <div style={{ width: 56, height: 56, borderRadius: 12, background: '#f1f5f9', display: 'grid', placeItems: 'center', fontSize: '1.5rem' }}>
-                              🍽️
+                            <div style={{ width: 54, height: 54, borderRadius: 12, background: '#f1f5f9', display: 'grid', placeItems: 'center', color: '#94a3b8' }}>
+                              <UtensilsCrossed size={20} />
                             </div>
                           )}
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <b style={{ fontSize: '.98rem', color: '#1e293b' }}>{i.name}</b>
-                              {i.name_am && <span style={{ color: '#64748b', fontSize: '.85rem' }}>/ {i.name_am}</span>}
+                              <b style={{ fontSize: '.96rem', color: '#0f172a' }}>{i.name}</b>
+                              {i.name_am && <span style={{ color: '#64748b', fontSize: '.84rem' }}>/ {i.name_am}</span>}
                               {i.special && (
-                                <span style={{ fontSize: '.72rem', background: '#fef3c7', color: '#d97706', padding: '2px 8px', borderRadius: 999, fontWeight: 700 }}>
-                                  ⭐ Special
+                                <span className="badge badge-amber">
+                                  <Sparkles size={11} /> Special
                                 </span>
                               )}
                             </div>
-                            <b style={{ color: '#2563eb', fontSize: '.94rem', display: 'block', marginTop: 2 }}>
+                            <b style={{ color: '#2563eb', fontSize: '.92rem', display: 'block', marginTop: 2 }}>
                               {Number(i.price).toLocaleString()} ETB
                             </b>
                             {i.description && <span style={{ fontSize: '.8rem', color: '#64748b' }}>{i.description}</span>}
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <button onClick={() => reorder('items', items, i, -1, (r) => r.category_id)} style={smallIconBtnStyle} title="Move Up">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <button onClick={() => reorder('items', items, i, -1, (r) => r.category_id)} className="btn btn-secondary btn-sm" title="Move Up">
                             ↑
                           </button>
-                          <button onClick={() => reorder('items', items, i, 1, (r) => r.category_id)} style={smallIconBtnStyle} title="Move Down">
+                          <button onClick={() => reorder('items', items, i, 1, (r) => r.category_id)} className="btn btn-secondary btn-sm" title="Move Down">
                             ↓
                           </button>
                           <button
                             onClick={() => toggle(i)}
-                            style={{
-                              ...pillBtnStyle,
-                              background: i.available ? '#dcfce7' : '#fee2e2',
-                              color: i.available ? '#16a34a' : '#dc2626',
-                            }}
+                            className={`btn btn-sm ${i.available ? 'btn-secondary' : 'btn-danger'}`}
                           >
-                            {i.available ? '● Available' : '○ Sold Out'}
+                            {i.available ? 'In Stock' : 'Sold Out'}
                           </button>
-                          <button onClick={() => openEditDish(i)} style={secondaryBtnStyle}>
-                            Edit
+                          <button onClick={() => openEditDish(i)} className="btn btn-secondary btn-sm">
+                            <Edit3 size={13} /> Edit
                           </button>
-                          <button onClick={() => del(i)} style={{ ...secondaryBtnStyle, color: '#ef4444' }}>
-                            Delete
+                          <button onClick={() => del(i)} className="btn btn-danger btn-sm">
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </div>
@@ -1260,15 +1370,15 @@ alter publication supabase_realtime add table orders;`;
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <div>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#1e293b' }}>Categories ({cats.length})</h2>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#0f172a' }}>Menu Categories ({cats.length})</h2>
                   <p style={{ margin: 0, color: '#64748b', fontSize: '.9rem' }}>Organize menu items into clean searchable groups.</p>
                 </div>
-                <button onClick={() => setShowAddCatModal(true)} style={primaryBtnStyle}>
-                  ➕ Add Category
+                <button onClick={() => setShowAddCatModal(true)} className="btn btn-primary">
+                  <Plus size={16} /> Add Category
                 </button>
               </div>
 
-              <div style={whiteBoxStyle}>
+              <div className="card">
                 {cats.length === 0 ? (
                   <p style={{ textAlign: 'center', color: '#64748b', padding: '36px 0' }}>No categories yet. Click Add Category above.</p>
                 ) : (
@@ -1276,21 +1386,21 @@ alter publication supabase_realtime add table orders;`;
                     {cats.map((c) => (
                       <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', border: '1px solid #f1f5f9', borderRadius: 12 }}>
                         <div>
-                          <b style={{ fontSize: '1.02rem', color: '#1e293b' }}>{c.name}</b>
+                          <b style={{ fontSize: '1.02rem', color: '#0f172a' }}>{c.name}</b>
                           {c.name_am && <span style={{ color: '#64748b', marginLeft: 8 }}>/ {c.name_am}</span>}
-                          <span style={{ display: 'block', fontSize: '.8rem', color: '#8f9bba', marginTop: 2 }}>
+                          <span style={{ display: 'block', fontSize: '.8rem', color: '#94a3b8', marginTop: 2 }}>
                             {items.filter((it) => it.category_id === c.id).length} dishes assigned
                           </span>
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
-                          <button onClick={() => reorder('categories', cats, c, -1, () => 0)} style={smallIconBtnStyle} title="Move Up">
+                          <button onClick={() => reorder('categories', cats, c, -1, () => 0)} className="btn btn-secondary btn-sm" title="Move Up">
                             ↑
                           </button>
-                          <button onClick={() => reorder('categories', cats, c, 1, () => 0)} style={smallIconBtnStyle} title="Move Down">
+                          <button onClick={() => reorder('categories', cats, c, 1, () => 0)} className="btn btn-secondary btn-sm" title="Move Down">
                             ↓
                           </button>
-                          <button onClick={() => delCat(c)} style={{ ...secondaryBtnStyle, color: '#ef4444' }}>
-                            Delete
+                          <button onClick={() => delCat(c)} className="btn btn-danger btn-sm">
+                            <Trash2 size={13} /> Delete
                           </button>
                         </div>
                       </div>
@@ -1308,7 +1418,7 @@ alter publication supabase_realtime add table orders;`;
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
                 <div>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#1e293b' }}>Staff Directory ({staffList.length})</h2>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#0f172a' }}>Staff Directory ({staffList.length})</h2>
                   <p style={{ margin: 0, color: '#64748b', fontSize: '.9rem' }}>Accounts for Chefs, Waiters, Cashiers, and Managers.</p>
                 </div>
 
@@ -1317,62 +1427,55 @@ alter publication supabase_realtime add table orders;`;
                     <button
                       key={r}
                       onClick={() => setStaffFilter(r)}
-                      style={{
-                        ...pillBtnStyle,
-                        background: staffFilter === r ? '#2563eb' : '#f1f5f9',
-                        color: staffFilter === r ? '#ffffff' : '#64748b',
-                      }}
+                      className={`btn btn-sm ${staffFilter === r ? 'btn-primary' : 'btn-secondary'}`}
                     >
-                      {r === 'all' ? 'All Roles' : r === 'waiter' ? '🛎️ Waiters' : r === 'cashier' ? '💵 Cashiers' : '👨‍🍳 Chefs'}
+                      {r === 'all' ? 'All Roles' : r === 'waiter' ? 'Waiters' : r === 'cashier' ? 'Cashiers' : 'Chefs'}
                     </button>
                   ))}
-                  <button onClick={() => setShowAddStaffModal(true)} style={primaryBtnStyle}>
-                    ➕ Add Staff Member
+                  <button onClick={() => setShowAddStaffModal(true)} className="btn btn-primary">
+                    <Plus size={16} /> Add Staff Account
                   </button>
                 </div>
               </div>
 
-              <div style={whiteBoxStyle}>
+              <div className="card">
                 {staffList.filter((s) => staffFilter === 'all' || s.role === staffFilter).length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                    <p style={{ color: '#64748b' }}>No staff members in this role yet.</p>
-                    <button onClick={() => setShowAddStaffModal(true)} style={{ ...primaryBtnStyle, marginTop: 10 }}>
-                      ➕ Add Staff Account
+                    <Users size={38} style={{ color: '#cbd5e1', margin: '0 auto 10px' }} />
+                    <p style={{ color: '#64748b' }}>No staff members registered in this category.</p>
+                    <button onClick={() => setShowAddStaffModal(true)} className="btn btn-primary" style={{ marginTop: 10 }}>
+                      <Plus size={15} /> Add Staff Account
                     </button>
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: 14 }}>
                     {staffList
                       .filter((s) => staffFilter === 'all' || s.role === staffFilter)
                       .map((member) => (
-                        <div key={member.id} style={{ border: '1px solid #e2e8f0', borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div key={member.id} className="card" style={{ padding: 18, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                            <div style={{ width: 46, height: 46, borderRadius: 12, background: '#eff6ff', display: 'grid', placeItems: 'center', fontSize: '1.4rem' }}>
-                              {member.role === 'chef' ? '👨‍🍳' : member.role === 'waiter' ? '🛎️' : member.role === 'cashier' ? '💵' : '👔'}
+                            <div style={{ width: 44, height: 44, borderRadius: 12, background: '#eff6ff', color: '#2563eb', display: 'grid', placeItems: 'center' }}>
+                              <Users size={20} />
                             </div>
                             <div>
-                              <b style={{ fontSize: '.98rem', color: '#1e293b', display: 'block' }}>{member.name}</b>
+                              <b style={{ fontSize: '.98rem', color: '#0f172a', display: 'block' }}>{member.name}</b>
                               <span style={{ fontSize: '.8rem', color: '#64748b' }}>{member.email}</span>
                             </div>
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', paddingTop: 12 }}>
-                            <span style={{ fontSize: '.75rem', fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: '#f1f5f9', color: '#475569', textTransform: 'uppercase' }}>
+                            <span className="badge badge-blue">
                               {member.role}
                             </span>
                             <div style={{ display: 'flex', gap: 6 }}>
                               <button
                                 onClick={() => toggleStaffStatus(member)}
-                                style={{
-                                  ...pillBtnStyle,
-                                  background: member.active ? '#dcfce7' : '#fee2e2',
-                                  color: member.active ? '#16a34a' : '#dc2626',
-                                }}
+                                className={`btn btn-sm ${member.active ? 'btn-success' : 'btn-danger'}`}
                               >
                                 {member.active ? '● On Duty' : '○ Off Duty'}
                               </button>
-                              <button onClick={() => deleteStaffMember(member)} style={{ ...secondaryBtnStyle, color: '#ef4444' }}>
-                                Remove
+                              <button onClick={() => deleteStaffMember(member)} className="btn btn-danger btn-sm">
+                                <Trash2 size={13} />
                               </button>
                             </div>
                           </div>
@@ -1390,72 +1493,67 @@ alter publication supabase_realtime add table orders;`;
           {currentTab === 'payments' && (
             <div style={{ maxWidth: 740 }}>
               <div style={{ marginBottom: 20 }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#1e293b' }}>Payment Setup</h2>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#0f172a' }}>Payment Setup</h2>
                 <p style={{ margin: 0, color: '#64748b', fontSize: '.9rem' }}>Configure Telebirr and CBE Bank accounts displayed to customers.</p>
               </div>
 
-              <form onSubmit={saveInfo} style={{ ...whiteBoxStyle, padding: 28 }}>
-                <h3 style={{ fontSize: '1.1rem', color: '#2563eb', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>📱</span> Telebirr Account
+              <form onSubmit={saveInfo} className="card" style={{ padding: 28 }}>
+                <h3 style={{ fontSize: '1.1rem', color: '#2563eb', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <CreditCard size={18} /> Telebirr Merchant Account
                 </h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 22 }}>
                   <div>
-                    <label style={formLabelStyle}>Account Name</label>
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Account Name</label>
                     <input
                       placeholder="e.g. Royal Hotel PLC"
                       value={st.telebirr_name || ''}
                       onChange={(e) => setSt({ ...st, telebirr_name: e.target.value })}
-                      style={inputStyle}
                     />
                   </div>
                   <div>
-                    <label style={formLabelStyle}>Telebirr Phone / Merchant #</label>
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Telebirr Number</label>
                     <input
                       placeholder="e.g. 0911223344"
                       value={st.telebirr_number || ''}
                       onChange={(e) => setSt({ ...st, telebirr_number: e.target.value })}
-                      style={inputStyle}
                     />
                   </div>
                 </div>
 
-                <h3 style={{ fontSize: '1.1rem', color: '#7c3aed', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>🏦</span> Commercial Bank of Ethiopia (CBE)
+                <h3 style={{ fontSize: '1.1rem', color: '#7c3aed', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <CreditCard size={18} /> Commercial Bank of Ethiopia (CBE)
                 </h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 22 }}>
                   <div>
-                    <label style={formLabelStyle}>Account Holder Name</label>
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Account Holder Name</label>
                     <input
                       placeholder="e.g. Royal Hotel PLC"
                       value={st.cbe_name || ''}
                       onChange={(e) => setSt({ ...st, cbe_name: e.target.value })}
-                      style={inputStyle}
                     />
                   </div>
                   <div>
-                    <label style={formLabelStyle}>Account Number</label>
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Account Number</label>
                     <input
                       placeholder="e.g. 1000123456789"
                       value={st.cbe_number || ''}
                       onChange={(e) => setSt({ ...st, cbe_number: e.target.value })}
-                      style={inputStyle}
                     />
                   </div>
                 </div>
 
                 <div style={{ marginBottom: 22 }}>
-                  <label style={formLabelStyle}>Payment Instructions (Optional)</label>
+                  <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Payment Instructions (Optional)</label>
                   <textarea
                     rows={3}
-                    placeholder="e.g. Please put your table number in the transfer reason and show confirmation to your waiter."
+                    placeholder="e.g. Please put your table number in the transfer reason and upload the screenshot."
                     value={st.payment_instructions || ''}
                     onChange={(e) => setSt({ ...st, payment_instructions: e.target.value })}
-                    style={inputStyle}
                   />
                 </div>
 
-                <button type="submit" style={primaryBtnStyle}>
-                  💾 Save Payment Details
+                <button type="submit" className="btn btn-primary">
+                  <Check size={16} /> Save Payment Configuration
                 </button>
               </form>
             </div>
@@ -1467,46 +1565,46 @@ alter publication supabase_realtime add table orders;`;
           {currentTab === 'contacts' && (
             <div style={{ maxWidth: 740 }}>
               <div style={{ marginBottom: 20 }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#1e293b' }}>Social Media & Contacts</h2>
-                <p style={{ margin: 0, color: '#64748b', fontSize: '.9rem' }}>These render interactive vector buttons on the customer digital menu.</p>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#0f172a' }}>Social Media & Contacts</h2>
+                <p style={{ margin: 0, color: '#64748b', fontSize: '.9rem' }}>These render interactive links on the customer digital menu.</p>
               </div>
 
-              <form onSubmit={saveInfo} style={{ ...whiteBoxStyle, padding: 28 }}>
+              <form onSubmit={saveInfo} className="card" style={{ padding: 28 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
                   <div>
-                    <label style={formLabelStyle}>Phone Number</label>
-                    <input placeholder="0911223344" value={st.phone || ''} onChange={(e) => setSt({ ...st, phone: e.target.value })} style={inputStyle} />
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Phone Number</label>
+                    <input placeholder="0911223344" value={st.phone || ''} onChange={(e) => setSt({ ...st, phone: e.target.value })} />
                   </div>
                   <div>
-                    <label style={formLabelStyle}>Telegram Username / Channel</label>
-                    <input placeholder="@royalhotel" value={st.telegram || ''} onChange={(e) => setSt({ ...st, telegram: e.target.value })} style={inputStyle} />
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Telegram Channel</label>
+                    <input placeholder="@royalhotel" value={st.telegram || ''} onChange={(e) => setSt({ ...st, telegram: e.target.value })} />
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
                   <div>
-                    <label style={formLabelStyle}>WhatsApp Number</label>
-                    <input placeholder="+251911223344" value={st.whatsapp || ''} onChange={(e) => setSt({ ...st, whatsapp: e.target.value })} style={inputStyle} />
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>WhatsApp</label>
+                    <input placeholder="+251911223344" value={st.whatsapp || ''} onChange={(e) => setSt({ ...st, whatsapp: e.target.value })} />
                   </div>
                   <div>
-                    <label style={formLabelStyle}>TikTok Handle</label>
-                    <input placeholder="@royalhotel" value={st.tiktok || ''} onChange={(e) => setSt({ ...st, tiktok: e.target.value })} style={inputStyle} />
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>TikTok Handle</label>
+                    <input placeholder="@royalhotel" value={st.tiktok || ''} onChange={(e) => setSt({ ...st, tiktok: e.target.value })} />
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
                   <div>
-                    <label style={formLabelStyle}>Google Maps Link</label>
-                    <input placeholder="https://maps.google.com/..." value={st.map_url || ''} onChange={(e) => setSt({ ...st, map_url: e.target.value })} style={inputStyle} />
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Google Maps Link</label>
+                    <input placeholder="https://maps.google.com/..." value={st.map_url || ''} onChange={(e) => setSt({ ...st, map_url: e.target.value })} />
                   </div>
                   <div>
-                    <label style={formLabelStyle}>Website URL</label>
-                    <input placeholder="https://royalhotel.com" value={st.website || ''} onChange={(e) => setSt({ ...st, website: e.target.value })} style={inputStyle} />
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Official Website</label>
+                    <input placeholder="https://royalhotel.com" value={st.website || ''} onChange={(e) => setSt({ ...st, website: e.target.value })} />
                   </div>
                 </div>
 
-                <button type="submit" style={primaryBtnStyle}>
-                  💾 Save Contact Details
+                <button type="submit" className="btn btn-primary">
+                  <Check size={16} /> Save Contact Details
                 </button>
               </form>
             </div>
@@ -1518,33 +1616,32 @@ alter publication supabase_realtime add table orders;`;
           {currentTab === 'qrcodes' && (
             <div style={{ maxWidth: 740 }}>
               <div style={{ marginBottom: 20 }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#1e293b' }}>Table QR Cards</h2>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#0f172a' }}>Table QR Cards</h2>
                 <p style={{ margin: 0, color: '#64748b', fontSize: '.9rem' }}>Generate and print scannable QR stands for dining tables.</p>
               </div>
 
-              <div style={{ ...whiteBoxStyle, padding: 28 }}>
-                <div style={{ display: 'flex', gap: 12, marginBottom: 20, maxWidth: 440 }}>
+              <div className="card" style={{ padding: 28 }}>
+                <div style={{ display: 'flex', gap: 12, marginBottom: 20, maxWidth: 460 }}>
                   <input
                     placeholder="Enter Table Number (e.g. 5)"
                     value={tbl}
                     onChange={(e) => setTbl(e.target.value)}
-                    style={{ ...inputStyle, margin: 0 }}
                   />
-                  <button onClick={makeQr} style={{ ...primaryBtnStyle, whiteSpace: 'nowrap' }}>
-                    Generate QR
+                  <button onClick={makeQr} className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>
+                    <QrCode size={16} /> Generate QR
                   </button>
                 </div>
 
                 {qr.img && (
                   <div style={{ textAlign: 'center', background: '#f8fafc', padding: 24, borderRadius: 16, border: '1px solid #e2e8f0' }}>
-                    <img src={qr.img} alt="QR Code" style={{ background: '#fff', borderRadius: 12, width: 220, padding: 12, border: '1px solid #e2e8f0' }} />
+                    <img src={qr.img} alt="QR Code" style={{ background: '#fff', borderRadius: 14, width: 220, padding: 14, border: '1px solid #e2e8f0', margin: '0 auto' }} />
                     <p style={{ color: '#64748b', fontSize: '.85rem', margin: '12px 0 16px' }}>{qr.url}</p>
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                      <a href={qr.img} download={`royal-qr${tbl ? '-table-' + tbl : ''}.png`} style={secondaryBtnStyle}>
-                        Download PNG
+                      <a href={qr.img} download={`royal-qr${tbl ? '-table-' + tbl : ''}.png`} className="btn btn-secondary">
+                        <Download size={15} /> Download PNG
                       </a>
-                      <button onClick={printCard} style={primaryBtnStyle}>
-                        🖨️ Print Stand Card
+                      <button onClick={printCard} className="btn btn-primary">
+                        <Printer size={15} /> Print Stand Card
                       </button>
                     </div>
                   </div>
@@ -1559,26 +1656,26 @@ alter publication supabase_realtime add table orders;`;
           {currentTab === 'database' && (
             <div style={{ maxWidth: 740 }}>
               <div style={{ marginBottom: 20 }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#1e293b' }}>Backup & Database</h2>
-                <p style={{ margin: 0, color: '#64748b', fontSize: '.9rem' }}>Download system data or copy SQL setup scripts.</p>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#0f172a' }}>Backup & Database</h2>
+                <p style={{ margin: 0, color: '#64748b', fontSize: '.9rem' }}>Export system backups and inspect database migration scripts.</p>
               </div>
 
-              <div style={{ ...whiteBoxStyle, padding: 24, marginBottom: 18 }}>
-                <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem' }}>📥 Full Offline Backup</h3>
+              <div className="card" style={{ padding: 24, marginBottom: 18 }}>
+                <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem' }}>Offline JSON Backup</h3>
                 <p style={{ color: '#64748b', fontSize: '.88rem', margin: '0 0 14px' }}>
-                  Export all dishes, categories, and configurations into a single secure JSON file.
+                  Export all dishes, categories, and settings into a single secure JSON file.
                 </p>
-                <button onClick={backup} style={primaryBtnStyle}>
-                  💾 Download JSON Backup
+                <button onClick={backup} className="btn btn-primary">
+                  <Download size={16} /> Download JSON Backup
                 </button>
               </div>
 
-              <div style={{ ...whiteBoxStyle, padding: 24 }}>
-                <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem' }}>📋 Supabase Orders SQL Schema</h3>
-                <pre style={{ background: '#1e293b', color: '#f8fafc', padding: 14, borderRadius: 12, fontSize: '.78rem', overflowX: 'auto', maxHeight: 200 }}>
+              <div className="card" style={{ padding: 24 }}>
+                <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem' }}>Supabase Orders SQL Schema</h3>
+                <pre style={{ background: '#0f172a', color: '#f8fafc', padding: 14, borderRadius: 12, fontSize: '.78rem', overflowX: 'auto', maxHeight: 200 }}>
                   {ordersSql}
                 </pre>
-                <button onClick={copySql} style={{ ...secondaryBtnStyle, marginTop: 10 }}>
+                <button onClick={copySql} className="btn btn-secondary" style={{ marginTop: 10 }}>
                   {copiedSql ? '✓ Copied to Clipboard!' : 'Copy SQL Query'}
                 </button>
               </div>
@@ -1591,34 +1688,39 @@ alter publication supabase_realtime add table orders;`;
           {currentTab === 'portals' && (
             <div>
               <div style={{ marginBottom: 20 }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#1e293b' }}>Station Portals</h2>
-                <p style={{ margin: 0, color: '#64748b', fontSize: '.9rem' }}>Quick shortcuts to open station operational screens.</p>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#0f172a' }}>Operational Station Portals</h2>
+                <p style={{ margin: 0, color: '#64748b', fontSize: '.9rem' }}>Direct launch links for station staff screens.</p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
                 {[
-                  { name: 'Cashier POS Desk', icon: '💵', path: '/cashier', desc: 'Accept orders, assign waiters, print receipts.' },
-                  { name: 'Kitchen Display (KDS)', icon: '👨‍🍳', path: '/kitchen', desc: 'Real-time cooking tickets and timers.' },
-                  { name: 'Waiter Service Table', icon: '🛎️', path: '/waiter', desc: 'Take table orders and track readiness.' },
-                  { name: 'Customer Digital Menu', icon: '🌐', path: '/', desc: 'Live guest visual ordering interface.' },
-                ].map((p) => (
-                  <div key={p.path} style={{ ...whiteBoxStyle, padding: 22, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <div>
-                      <div style={{ fontSize: '2rem', marginBottom: 8 }}>{p.icon}</div>
-                      <b style={{ fontSize: '1.05rem', color: '#1e293b', display: 'block' }}>{p.name}</b>
-                      <p style={{ color: '#64748b', fontSize: '.84rem', margin: '4px 0 14px' }}>{p.desc}</p>
+                  { name: 'Cashier POS Desk', icon: CreditCard, path: '/cashier', desc: 'Accept orders, assign waiters, and settle post-service bills.' },
+                  { name: 'Kitchen Display (KDS)', icon: UtensilsCrossed, path: '/kitchen', desc: 'Live ticket queue with cooking timers and ready alerts.' },
+                  { name: 'Waiter Service Table', icon: Users, path: '/waiter', desc: 'Take mobile table orders and monitor dish preparation.' },
+                  { name: 'Customer Digital Menu', icon: Globe, path: '/', desc: 'Live visual menu with high-res photos and shopping cart.' },
+                ].map((p) => {
+                  const Icon = p.icon;
+                  return (
+                    <div key={p.path} className="card" style={{ padding: 22, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div>
+                        <div style={{ width: 44, height: 44, borderRadius: 12, background: '#eff6ff', color: '#2563eb', display: 'grid', placeItems: 'center', marginBottom: 12 }}>
+                          <Icon size={22} />
+                        </div>
+                        <b style={{ fontSize: '1.05rem', color: '#0f172a', display: 'block' }}>{p.name}</b>
+                        <p style={{ color: '#64748b', fontSize: '.84rem', margin: '6px 0 16px' }}>{p.desc}</p>
+                      </div>
+                      <a href={p.path} target="_blank" rel="noreferrer" className="btn btn-primary" style={{ width: '100%' }}>
+                        Launch Screen <ExternalLink size={14} />
+                      </a>
                     </div>
-                    <a href={p.path} target="_blank" rel="noreferrer" style={{ ...primaryBtnStyle, textDecoration: 'none', textAlign: 'center' }}>
-                      Open Station Screen ↗
-                    </a>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
         </main>
 
-        {/* Global Footer (Matches screenshot) */}
+        {/* Global SaaS Footer */}
         <footer
           style={{
             marginTop: 'auto',
@@ -1629,17 +1731,17 @@ alter publication supabase_realtime add table orders;`;
             justifyContent: 'space-between',
             alignItems: 'center',
             fontSize: '.82rem',
-            color: '#8f9bba',
+            color: '#64748b',
             flexWrap: 'wrap',
             gap: 10,
           }}
         >
-          <span>Royal Hotel Restaurant Management System</span>
+          <span>Royal Hotel Restaurant Management SaaS Platform</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#10b981', fontWeight: 600 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} /> System Online
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#059669', fontWeight: 600 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} /> System Operational
             </span>
-            <span>v1.0.0</span>
+            <span>v2.4.0 SaaS Edition</span>
           </div>
         </footer>
       </div>
@@ -1650,79 +1752,86 @@ alter publication supabase_realtime add table orders;`;
 
       {/* MODAL 1: ADD STAFF MEMBER */}
       {showAddStaffModal && (
-        <div style={modalBackdropStyle}>
-          <div style={modalCardStyle}>
-            <div style={modalHeaderStyle}>
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b', fontWeight: 800 }}>➕ Add Staff Member</h3>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>Add Staff Member</h3>
                 <span style={{ fontSize: '.8rem', color: '#64748b' }}>አዲስ የሰራተኛ መለያ መፍጠሪያ</span>
               </div>
-              <button onClick={() => setShowAddStaffModal(false)} style={closeBtnStyle}>✕</button>
+              <button onClick={() => setShowAddStaffModal(false)} className="btn btn-ghost btn-sm" style={{ padding: 6 }}>
+                <X size={18} />
+              </button>
             </div>
 
             <form onSubmit={createStaffAccount}>
-              <label style={formLabelStyle}>Staff Full Name (ሙሉ ስም) *</label>
-              <input
-                required
-                autoFocus
-                placeholder="e.g. Abebe Bikila"
-                value={staffName}
-                onChange={(e) => setStaffName(e.target.value)}
-                style={inputStyle}
-              />
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Staff Full Name (ሙሉ ስም) *</label>
+                <input
+                  required
+                  autoFocus
+                  placeholder="e.g. Abebe Bikila"
+                  value={staffName}
+                  onChange={(e) => setStaffName(e.target.value)}
+                />
+              </div>
 
-              <label style={formLabelStyle}>Role / Station (የስራ ድርሻ) *</label>
-              <select
-                value={staffRole}
-                onChange={(e) => setStaffRole(e.target.value)}
-                style={inputStyle}
-              >
-                <option value="waiter">🛎️ Waiter / Table Service</option>
-                <option value="cashier">💵 Cashier Desk / POS</option>
-                <option value="chef">👨‍🍳 Kitchen Chef (KDS)</option>
-                <option value="manager">👔 Hotel Manager / Admin</option>
-              </select>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Role / Station (የስራ ድርሻ) *</label>
+                <select
+                  value={staffRole}
+                  onChange={(e) => setStaffRole(e.target.value)}
+                >
+                  <option value="waiter">Waiter / Table Service</option>
+                  <option value="cashier">Cashier Desk / POS</option>
+                  <option value="chef">Kitchen Head Chef (KDS)</option>
+                  <option value="manager">Hotel Manager / Admin</option>
+                </select>
+              </div>
 
-              <label style={formLabelStyle}>Login Email (መግቢያ ኢሜይል) *</label>
-              <input
-                type="email"
-                required
-                placeholder="waiter@royalhotel.com"
-                value={staffEmail}
-                onChange={(e) => setStaffEmail(e.target.value)}
-                style={inputStyle}
-              />
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Login Email (መግቢያ ኢሜይል) *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="waiter@royalhotel.com"
+                  value={staffEmail}
+                  onChange={(e) => setStaffEmail(e.target.value)}
+                />
+              </div>
 
-              <label style={formLabelStyle}>Password (የይለፍ ቃል - ቢያንስ 6 ፊደላት) *</label>
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={staffPassword}
-                onChange={(e) => setStaffPassword(e.target.value)}
-                style={inputStyle}
-              />
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Password (የይለፍ ቃል - ቢያንስ 6 ፊደላት) *</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={staffPassword}
+                  onChange={(e) => setStaffPassword(e.target.value)}
+                />
+              </div>
 
-              <label style={formLabelStyle}>Phone Number (ስልክ ቁጥር - አማራጭ)</label>
-              <input
-                placeholder="0911223344"
-                value={staffPhone}
-                onChange={(e) => setStaffPhone(e.target.value)}
-                style={inputStyle}
-              />
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Phone Number (ስልክ ቁጥር - አማራጭ)</label>
+                <input
+                  placeholder="0911223344"
+                  value={staffPhone}
+                  onChange={(e) => setStaffPhone(e.target.value)}
+                />
+              </div>
 
               {staffMsg.text && (
-                <p style={{ color: staffMsg.bad ? '#dc2626' : '#16a34a', fontSize: '.85rem', fontWeight: 600 }}>
+                <p style={{ color: staffMsg.bad ? '#dc2626' : '#16a34a', fontSize: '.85rem', fontWeight: 600, marginBottom: 14 }}>
                   {staffMsg.text}
                 </p>
               )}
 
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
-                <button type="button" onClick={() => setShowAddStaffModal(false)} style={secondaryBtnStyle}>
+                <button type="button" onClick={() => setShowAddStaffModal(false)} className="btn btn-secondary">
                   Cancel
                 </button>
-                <button type="submit" disabled={busyStaff} style={primaryBtnStyle}>
-                  {busyStaff ? 'Creating...' : '➕ Create Account'}
+                <button type="submit" disabled={busyStaff} className="btn btn-primary">
+                  {busyStaff ? 'Creating...' : 'Create Account'}
                 </button>
               </div>
             </form>
@@ -1732,47 +1841,47 @@ alter publication supabase_realtime add table orders;`;
 
       {/* MODAL 2: ADD / EDIT DISH */}
       {showDishModal && (
-        <div style={modalBackdropStyle}>
-          <div style={{ ...modalCardStyle, maxWidth: 600 }}>
-            <div style={modalHeaderStyle}>
+        <div className="modal-backdrop">
+          <div className="modal-card" style={{ maxWidth: 620 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b', fontWeight: 800 }}>
-                  {editId ? '✏️ Edit Dish' : '➕ Add New Dish'}
+                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>
+                  {editId ? 'Edit Dish Item' : 'Add New Dish'}
                 </h3>
                 <span style={{ fontSize: '.8rem', color: '#64748b' }}>
                   {editId ? 'ምግቡን አድስ' : 'አዲስ ምግብ ወደ ሜኑ ጨምር'}
                 </span>
               </div>
-              <button onClick={() => setShowDishModal(false)} style={closeBtnStyle}>✕</button>
+              <button onClick={() => setShowDishModal(false)} className="btn btn-ghost btn-sm" style={{ padding: 6 }}>
+                <X size={18} />
+              </button>
             </div>
 
             <form onSubmit={saveDish}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
-                  <label style={formLabelStyle}>Dish Name (English) *</label>
+                  <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Dish Name (English) *</label>
                   <input
                     required
                     autoFocus
                     placeholder="e.g. Special Beef Tibbs"
                     value={f.name}
                     onChange={(e) => setF({ ...f, name: e.target.value })}
-                    style={inputStyle}
                   />
                 </div>
                 <div>
-                  <label style={formLabelStyle}>Amharic Name (ስም በአማርኛ)</label>
+                  <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Amharic Name (ስም በአማርኛ)</label>
                   <input
                     placeholder="ምሳሌ፡ የበሬ ልዩ ጥብስ"
                     value={f.name_am}
                     onChange={(e) => setF({ ...f, name_am: e.target.value })}
-                    style={inputStyle}
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
-                  <label style={formLabelStyle}>Price in ETB *</label>
+                  <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Price in ETB *</label>
                   <input
                     required
                     type="number"
@@ -1780,15 +1889,13 @@ alter publication supabase_realtime add table orders;`;
                     placeholder="450"
                     value={f.price}
                     onChange={(e) => setF({ ...f, price: e.target.value })}
-                    style={inputStyle}
                   />
                 </div>
                 <div>
-                  <label style={formLabelStyle}>Category (ምድብ)</label>
+                  <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Category (ምድብ)</label>
                   <select
                     value={f.category_id}
                     onChange={(e) => setF({ ...f, category_id: e.target.value })}
-                    style={inputStyle}
                   >
                     <option value="">No category</option>
                     {cats.map((c) => (
@@ -1801,29 +1908,28 @@ alter publication supabase_realtime add table orders;`;
               </div>
 
               <div style={{ marginBottom: 12 }}>
-                <label style={formLabelStyle}>Description (English)</label>
+                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Description (English)</label>
                 <textarea
                   rows={2}
                   placeholder="Ingredients, preparation details..."
                   value={f.description}
                   onChange={(e) => setF({ ...f, description: e.target.value })}
-                  style={inputStyle}
                 />
               </div>
 
               {/* Photo Upload */}
               <div style={{ marginBottom: 14 }}>
-                <label style={formLabelStyle}>Dish Photo (ምስል)</label>
+                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Dish Photo (ምስል)</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setFile(e.target.files[0] || null)}
-                  style={{ ...inputStyle, padding: '8px' }}
+                  style={{ padding: '8px' }}
                 />
               </div>
 
               {/* Special checkbox */}
-              <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 18 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '.9rem', cursor: 'pointer', fontWeight: 600, color: '#d97706' }}>
                   <input
                     type="checkbox"
@@ -1831,15 +1937,15 @@ alter publication supabase_realtime add table orders;`;
                     onChange={(e) => setF({ ...f, special: e.target.checked })}
                     style={{ width: 'auto', margin: 0 }}
                   />
-                  ⭐ Mark as &quot;Today&apos;s Special&quot;
+                  <Sparkles size={16} /> Mark as &quot;Today&apos;s Special&quot;
                 </label>
               </div>
 
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setShowDishModal(false)} style={secondaryBtnStyle}>
+                <button type="button" onClick={() => setShowDishModal(false)} className="btn btn-secondary">
                   Cancel
                 </button>
-                <button type="submit" disabled={busy} style={primaryBtnStyle}>
+                <button type="submit" disabled={busy} className="btn btn-primary">
                   {busy ? 'Saving...' : editId ? 'Update Dish' : 'Add Dish'}
                 </button>
               </div>
@@ -1850,37 +1956,41 @@ alter publication supabase_realtime add table orders;`;
 
       {/* MODAL 3: ADD CATEGORY */}
       {showAddCatModal && (
-        <div style={modalBackdropStyle}>
-          <div style={modalCardStyle}>
-            <div style={modalHeaderStyle}>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b', fontWeight: 800 }}>➕ Add Category</h3>
-              <button onClick={() => setShowAddCatModal(false)} style={closeBtnStyle}>✕</button>
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>Add Menu Category</h3>
+              <button onClick={() => setShowAddCatModal(false)} className="btn btn-ghost btn-sm" style={{ padding: 6 }}>
+                <X size={18} />
+              </button>
             </div>
 
             <form onSubmit={addCat}>
-              <label style={formLabelStyle}>Category Name (English) *</label>
-              <input
-                required
-                autoFocus
-                placeholder="e.g. Traditional Food"
-                value={newCat.name}
-                onChange={(e) => setNewCat({ ...newCat, name: e.target.value })}
-                style={inputStyle}
-              />
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Category Name (English) *</label>
+                <input
+                  required
+                  autoFocus
+                  placeholder="e.g. Traditional Food"
+                  value={newCat.name}
+                  onChange={(e) => setNewCat({ ...newCat, name: e.target.value })}
+                />
+              </div>
 
-              <label style={formLabelStyle}>Category Name in Amharic (ስም በአማርኛ)</label>
-              <input
-                placeholder="ምሳሌ፡ የባህል ምግቦች"
-                value={newCat.name_am}
-                onChange={(e) => setNewCat({ ...newCat, name_am: e.target.value })}
-                style={inputStyle}
-              />
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Category Name in Amharic (ስም በአማርኛ)</label>
+                <input
+                  placeholder="ምሳሌ፡ የባህል ምግቦች"
+                  value={newCat.name_am}
+                  onChange={(e) => setNewCat({ ...newCat, name_am: e.target.value })}
+                />
+              </div>
 
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
-                <button type="button" onClick={() => setShowAddCatModal(false)} style={secondaryBtnStyle}>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowAddCatModal(false)} className="btn btn-secondary">
                   Cancel
                 </button>
-                <button type="submit" style={primaryBtnStyle}>
+                <button type="submit" className="btn btn-primary">
                   Add Category
                 </button>
               </div>
@@ -1891,39 +2001,40 @@ alter publication supabase_realtime add table orders;`;
 
       {/* MODAL 4: GENERATE QR */}
       {showQrModal && (
-        <div style={modalBackdropStyle}>
-          <div style={modalCardStyle}>
-            <div style={modalHeaderStyle}>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b', fontWeight: 800 }}>⚏ Generate Table QR Code</h3>
-              <button onClick={() => setShowQrModal(false)} style={closeBtnStyle}>✕</button>
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>Generate Table QR Code</h3>
+              <button onClick={() => setShowQrModal(false)} className="btn btn-ghost btn-sm" style={{ padding: 6 }}>
+                <X size={18} />
+              </button>
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={formLabelStyle}>Table Number (Leave blank for general menu)</label>
+              <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Table Number (Leave blank for general menu)</label>
               <div style={{ display: 'flex', gap: 10 }}>
                 <input
                   autoFocus
                   placeholder="e.g. 5"
                   value={tbl}
                   onChange={(e) => setTbl(e.target.value)}
-                  style={{ ...inputStyle, margin: 0 }}
                 />
-                <button onClick={makeQr} style={primaryBtnStyle}>
-                  Generate
+                <button onClick={makeQr} className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>
+                  <QrCode size={16} /> Generate
                 </button>
               </div>
             </div>
 
             {qr.img && (
               <div style={{ textAlign: 'center', background: '#f8fafc', padding: 20, borderRadius: 14, border: '1px solid #e2e8f0' }}>
-                <img src={qr.img} alt="QR Code" style={{ background: '#fff', borderRadius: 12, width: 180, padding: 8, border: '1px solid #e2e8f0' }} />
+                <img src={qr.img} alt="QR Code" style={{ background: '#fff', borderRadius: 12, width: 190, padding: 10, border: '1px solid #e2e8f0', margin: '0 auto' }} />
                 <p style={{ color: '#64748b', fontSize: '.8rem', margin: '8px 0 14px' }}>{qr.url}</p>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                  <a href={qr.img} download={`royal-qr${tbl ? '-table-' + tbl : ''}.png`} style={secondaryBtnStyle}>
-                    Download PNG
+                  <a href={qr.img} download={`royal-qr${tbl ? '-table-' + tbl : ''}.png`} className="btn btn-secondary">
+                    <Download size={15} /> Download PNG
                   </a>
-                  <button onClick={printCard} style={primaryBtnStyle}>
-                    Print Card
+                  <button onClick={printCard} className="btn btn-primary">
+                    <Printer size={15} /> Print Card
                   </button>
                 </div>
               </div>
@@ -1942,171 +2053,3 @@ alter publication supabase_realtime add table orders;`;
     </div>
   );
 }
-
-// =========================================================================
-// REFINED MODERN LIGHT-THEME STYLES (Matches reference photo)
-// =========================================================================
-
-const statCardStyle = {
-  background: '#ffffff',
-  borderRadius: 18,
-  padding: '18px 20px',
-  display: 'flex',
-  alignItems: 'center',
-  gap: 16,
-  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
-  border: '1px solid #f1f5f9',
-};
-
-const whiteBoxStyle = {
-  background: '#ffffff',
-  borderRadius: 18,
-  padding: 22,
-  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
-  border: '1px solid #f1f5f9',
-};
-
-const quickActionButtonStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '16px 8px',
-  borderRadius: 14,
-  background: '#ffffff',
-  border: '1px solid #e2e8f0',
-  cursor: 'pointer',
-  gap: 8,
-  transition: 'all 0.15s ease',
-  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.02)',
-};
-
-const actionIconCircleStyle = {
-  width: 38,
-  height: 38,
-  borderRadius: '50%',
-  display: 'grid',
-  placeItems: 'center',
-  fontSize: '1.15rem',
-  fontWeight: 700,
-};
-
-const primaryBtnStyle = {
-  background: '#2563eb',
-  color: '#ffffff',
-  border: 'none',
-  borderRadius: 12,
-  padding: '9px 18px',
-  fontWeight: 700,
-  fontSize: '.88rem',
-  cursor: 'pointer',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 8,
-  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
-  transition: 'background 0.15s ease',
-};
-
-const secondaryBtnStyle = {
-  background: '#f1f5f9',
-  color: '#475569',
-  border: '1px solid #e2e8f0',
-  borderRadius: 10,
-  padding: '7px 14px',
-  fontWeight: 600,
-  fontSize: '.84rem',
-  cursor: 'pointer',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-  textDecoration: 'none',
-};
-
-const pillBtnStyle = {
-  border: 'none',
-  padding: '5px 12px',
-  borderRadius: 999,
-  fontSize: '.78rem',
-  fontWeight: 700,
-  cursor: 'pointer',
-};
-
-const smallIconBtnStyle = {
-  width: 30,
-  height: 30,
-  borderRadius: 8,
-  border: '1px solid #e2e8f0',
-  background: '#ffffff',
-  color: '#475569',
-  cursor: 'pointer',
-  fontWeight: 700,
-  display: 'grid',
-  placeItems: 'center',
-};
-
-const formLabelStyle = {
-  fontSize: '.82rem',
-  color: '#475569',
-  fontWeight: 600,
-  display: 'block',
-  marginBottom: 5,
-};
-
-const inputStyle = {
-  width: '100%',
-  boxSizing: 'border-box',
-  padding: '10px 14px',
-  borderRadius: 12,
-  border: '1px solid #cbd5e1',
-  background: '#ffffff',
-  fontSize: '.9rem',
-  color: '#1e293b',
-  outline: 'none',
-  marginBottom: 12,
-};
-
-const modalBackdropStyle = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(15, 23, 42, 0.65)',
-  backdropFilter: 'blur(5px)',
-  zIndex: 9999,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: 16,
-};
-
-const modalCardStyle = {
-  background: '#ffffff',
-  borderRadius: 20,
-  maxWidth: 520,
-  width: '100%',
-  maxHeight: '92vh',
-  overflowY: 'auto',
-  padding: 26,
-  boxShadow: '0 25px 60px rgba(0, 0, 0, 0.25)',
-  border: '1px solid #e2e8f0',
-};
-
-const modalHeaderStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'flex-start',
-  marginBottom: 20,
-  paddingBottom: 14,
-  borderBottom: '1px solid #f1f5f9',
-};
-
-const closeBtnStyle = {
-  background: '#f1f5f9',
-  border: 'none',
-  borderRadius: '50%',
-  width: 32,
-  height: 32,
-  cursor: 'pointer',
-  color: '#64748b',
-  fontWeight: 800,
-  display: 'grid',
-  placeItems: 'center',
-};

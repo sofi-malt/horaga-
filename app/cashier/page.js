@@ -1,5 +1,28 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
+import {
+  CreditCard,
+  UtensilsCrossed,
+  Printer,
+  Volume2,
+  VolumeX,
+  Plus,
+  Search,
+  Users,
+  UserCheck,
+  UserPlus,
+  FileText,
+  Clock,
+  Check,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  ExternalLink,
+  ShieldCheck,
+  LogOut,
+  RefreshCw,
+  ShoppingBag,
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import {
   fetchOrders,
@@ -14,7 +37,7 @@ import StaffSecurityModal from '../../components/StaffSecurityModal';
 
 export default function CashierPage() {
   const [session, setSession] = useState(undefined);
-  const [lang, setLang] = useState('am');
+  const [lang, setLang] = useState('en');
   const [showSecurityModal, setShowSecurityModal] = useState(false);
 
   const [orders, setOrders] = useState([]);
@@ -48,22 +71,6 @@ export default function CashierPage() {
     const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => data.subscription.unsubscribe();
   }, []);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setBusyLogin(true);
-    setLoginMsg({ text: '', bad: false });
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password: pw,
-    });
-
-    setBusyLogin(false);
-    if (error) {
-      setLoginMsg({ text: error.message, bad: true });
-    }
-  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -100,7 +107,7 @@ export default function CashierPage() {
       if (allOrders) {
         setOrders(allOrders);
       } else if (order) {
-        if (event === 'INSERT') {
+        if (event === 'INSERT' && soundEnabled) {
           playChime('new_order');
         }
         loadOrders();
@@ -108,11 +115,11 @@ export default function CashierPage() {
     });
 
     return () => unsubscribe();
-  }, [session, loadOrders]);
+  }, [session, soundEnabled, loadOrders]);
 
   // Actions
   const handleConfirmPayment = async (order) => {
-    playChime('confirmed');
+    if (soundEnabled) playChime('confirmed');
     await updateOrder(order.id, {
       status: 'confirmed',
       payment_status: 'confirmed',
@@ -121,7 +128,7 @@ export default function CashierPage() {
   };
 
   const handleMarkReady = async (order) => {
-    playChime('ready');
+    if (soundEnabled) playChime('ready');
     await updateOrder(order.id, { status: 'ready' });
     loadOrders();
   };
@@ -133,7 +140,7 @@ export default function CashierPage() {
 
   const handleRejectOrder = async () => {
     if (!rejectingOrder) return;
-    playChime('alert');
+    if (soundEnabled) playChime('alert');
     await updateOrder(rejectingOrder.id, {
       status: 'cancelled',
       payment_status: 'rejected',
@@ -161,7 +168,7 @@ export default function CashierPage() {
     setPrintableOrder(order);
     setTimeout(() => {
       window.print();
-    }, 200);
+    }, 250);
   };
 
   // POS Add item
@@ -223,8 +230,12 @@ export default function CashierPage() {
   // Loading session state
   if (session === undefined) {
     return (
-      <main className="wrap" style={{ textAlign: 'center', paddingTop: 80 }}>
-        <p className="empty">Checking cashier authorization...</p>
+      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+        <div style={{ textAlign: 'center', padding: 32 }}>
+          <div style={{ width: 44, height: 44, border: '3px solid #e2e8f0', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>Royal Hotel Cashier POS</h3>
+          <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: '.88rem' }}>Authenticating cashier terminal...</p>
+        </div>
       </main>
     );
   }
@@ -233,13 +244,9 @@ export default function CashierPage() {
   if (!session) {
     return (
       <StaffLoginForm
-        title={lang === 'am' ? 'የካሼር መግቢያ' : 'Cashier Desk Sign In'}
-        subtitle={
-          lang === 'am'
-            ? 'የተፈቀደላቸው የካሼር ሰራተኞች ብቻ'
-            : 'Restricted Area. Authorized cashier staff sign-in.'
-        }
-        icon="💵"
+        title="Cashier Desk Sign In"
+        subtitle="Restricted Terminal. Authorized cashier staff sign-in."
+        icon={<CreditCard size={28} color="#2563eb" />}
         lang={lang}
         onLangChange={setLang}
         onLoginSuccess={(s) => setSession(s)}
@@ -247,7 +254,7 @@ export default function CashierPage() {
     );
   }
 
-  // Filter orders
+  // Filter orders counts
   const pendingCount = orders.filter((o) => o.status === 'pending_payment').length;
   const kitchenCount = orders.filter((o) => ['confirmed', 'preparing'].includes(o.status)).length;
   const readyCount = orders.filter((o) => o.status === 'ready').length;
@@ -287,663 +294,618 @@ export default function CashierPage() {
   };
 
   return (
-    <main className="wrap-wide noprint">
-      {/* Top Navbar */}
-      <div
+    <div style={{ minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }} className="noprint">
+      {/* Top SaaS Header */}
+      <header
         style={{
+          background: '#0f172a',
+          color: '#ffffff',
+          padding: '16px 28px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderBottom: '1px solid var(--bd)',
-          padding: '14px 0',
-          marginBottom: 16,
           flexWrap: 'wrap',
-          gap: 12,
+          gap: 14,
+          boxShadow: '0 4px 20px rgba(15, 23, 42, 0.08)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/logo.png" alt="Logo" style={{ height: 40, width: 'auto' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: '#2563eb', display: 'grid', placeItems: 'center', color: '#ffffff' }}>
+            <CreditCard size={22} />
+          </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--o)' }}>
-              💵 Cashier Desk
-            </h1>
-            <span className="sm">
-              Staff: <b>{session.user?.email}</b>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#ffffff' }}>Cashier POS Station</h1>
+              <span style={{ fontSize: '.68rem', background: '#2563eb', color: '#ffffff', padding: '2px 8px', borderRadius: 999, fontWeight: 700 }}>
+                TERMINAL #1
+              </span>
+            </div>
+            <span style={{ fontSize: '.76rem', color: '#94a3b8' }}>
+              Cashier: <b>{session.user?.email}</b>
             </span>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <button
-            className={`btn sm ${soundEnabled ? 'o' : 'x'}`}
             onClick={() => setSoundEnabled(!soundEnabled)}
-            title="Audio notification chime"
+            className="btn btn-secondary btn-sm"
+            style={{ background: soundEnabled ? '#eff6ff' : '#ffffff', color: soundEnabled ? '#2563eb' : '#64748b' }}
+            title="Audio alerts"
           >
-            {soundEnabled ? '🔔 Sound On' : '🔕 Muted'}
+            {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+            {soundEnabled ? 'Chimes Active' : 'Muted'}
           </button>
-          <button className="btn sm" onClick={() => setShowPOS(true)}>
-            + New Walk-in Order
+
+          <button onClick={() => setShowPOS(true)} className="btn btn-primary btn-sm">
+            <Plus size={15} /> New Walk-in Order
           </button>
-          <button
-            className="btn sm o"
-            onClick={() => setShowSecurityModal(true)}
-            title="Change Password & 2FA"
-          >
-            🔑 {lang === 'am' ? 'የይለፍ ቃልና ደህንነት' : 'Security & Password'}
+
+          <button onClick={() => setShowSecurityModal(true)} className="btn btn-secondary btn-sm" title="2FA & Password">
+            <ShieldCheck size={15} /> Security
           </button>
-          <a href="/kitchen" className="btn sm x">
-            👨‍🍳 Kitchen KDS
+
+          <a href="/kitchen" target="_blank" className="btn btn-secondary btn-sm">
+            <UtensilsCrossed size={15} /> Kitchen KDS
           </a>
-          <a href="/admin" className="btn sm x">
-            ⚙️ Admin
+
+          <a href="/admin" target="_blank" className="btn btn-secondary btn-sm">
+            Admin Portal
           </a>
-          <button className="btn sm danger" onClick={handleSignOut} title="Sign out of Cashier Desk">
-            Sign out
+
+          <button onClick={handleSignOut} className="btn btn-danger btn-sm">
+            <LogOut size={15} /> Sign Out
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Overview Stat Badges */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: 10,
-          marginBottom: 16,
-        }}
-      >
-        <button
-          className={`panel ${filter === 'pending' ? 'urgent' : ''}`}
-          style={{ margin: 0, cursor: 'pointer', textAlign: 'left', padding: 12 }}
-          onClick={() => setFilter('pending')}
-        >
-          <div className="sm">Pending Payment</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--o)' }}>
-            {pendingCount}
-          </div>
-        </button>
-
-        <button
-          className={`panel ${filter === 'kitchen' ? 'urgent' : ''}`}
-          style={{ margin: 0, cursor: 'pointer', textAlign: 'left', padding: 12 }}
-          onClick={() => setFilter('kitchen')}
-        >
-          <div className="sm">In Kitchen Cooking</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--b)' }}>
-            {kitchenCount}
-          </div>
-        </button>
-
-        <button
-          className={`panel ${filter === 'ready' ? 'kitchen-ready' : ''}`}
-          style={{ margin: 0, cursor: 'pointer', textAlign: 'left', padding: 12 }}
-          onClick={() => setFilter('ready')}
-        >
-          <div className="sm">Ready for Serving</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--g)' }}>
-            {readyCount}
-          </div>
-        </button>
-
-        <button
-          className="panel"
-          style={{ margin: 0, cursor: 'pointer', textAlign: 'left', padding: 12 }}
-          onClick={() => setFilter('all')}
-        >
-          <div className="sm">Total Orders Today</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--tx)' }}>
-            {orders.length}
-          </div>
-        </button>
-      </div>
-
-      {/* Filter Tabs and Search */}
-      <div className="row" style={{ marginBottom: 16 }}>
-        <div className="tabs" style={{ position: 'static', padding: 0, flex: '1 1 320px' }}>
-          <button
-            className={`tab ${filter === 'pending' ? 'on' : ''}`}
+      {/* Main Workspace Area */}
+      <main style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 28px' }}>
+        {/* Stat Cards Row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14, marginBottom: 20 }}>
+          <div
             onClick={() => setFilter('pending')}
+            className="card"
+            style={{
+              cursor: 'pointer',
+              borderLeft: filter === 'pending' ? '4px solid #f59e0b' : '1px solid #e2e8f0',
+              background: filter === 'pending' ? '#fffbeb' : '#ffffff',
+            }}
           >
-            Pending Approval ({pendingCount})
-          </button>
-          <button
-            className={`tab ${filter === 'kitchen' ? 'on' : ''}`}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '.84rem', color: '#64748b', fontWeight: 600 }}>Pending Approval</span>
+              <span className="badge badge-amber">{pendingCount}</span>
+            </div>
+            <b style={{ fontSize: '1.8rem', fontWeight: 800, color: '#d97706', display: 'block', marginTop: 4 }}>
+              {pendingCount}
+            </b>
+          </div>
+
+          <div
             onClick={() => setFilter('kitchen')}
+            className="card"
+            style={{
+              cursor: 'pointer',
+              borderLeft: filter === 'kitchen' ? '4px solid #2563eb' : '1px solid #e2e8f0',
+              background: filter === 'kitchen' ? '#eff6ff' : '#ffffff',
+            }}
           >
-            Kitchen ({kitchenCount})
-          </button>
-          <button
-            className={`tab ${filter === 'ready' ? 'on' : ''}`}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '.84rem', color: '#64748b', fontWeight: 600 }}>In Kitchen Cooking</span>
+              <span className="badge badge-blue">{kitchenCount}</span>
+            </div>
+            <b style={{ fontSize: '1.8rem', fontWeight: 800, color: '#2563eb', display: 'block', marginTop: 4 }}>
+              {kitchenCount}
+            </b>
+          </div>
+
+          <div
             onClick={() => setFilter('ready')}
+            className="card"
+            style={{
+              cursor: 'pointer',
+              borderLeft: filter === 'ready' ? '4px solid #10b981' : '1px solid #e2e8f0',
+              background: filter === 'ready' ? '#ecfdf5' : '#ffffff',
+            }}
           >
-            Ready ({readyCount})
-          </button>
-          <button
-            className={`tab ${filter === 'completed' ? 'on' : ''}`}
-            onClick={() => setFilter('completed')}
-          >
-            Completed
-          </button>
-          <button
-            className={`tab ${filter === 'all' ? 'on' : ''}`}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '.84rem', color: '#64748b', fontWeight: 600 }}>Plated & Ready</span>
+              <span className="badge badge-green">{readyCount}</span>
+            </div>
+            <b style={{ fontSize: '1.8rem', fontWeight: 800, color: '#059669', display: 'block', marginTop: 4 }}>
+              {readyCount}
+            </b>
+          </div>
+
+          <div
             onClick={() => setFilter('all')}
+            className="card"
+            style={{
+              cursor: 'pointer',
+              borderLeft: filter === 'all' ? '4px solid #0f172a' : '1px solid #e2e8f0',
+            }}
           >
-            All
-          </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '.84rem', color: '#64748b', fontWeight: 600 }}>Total Orders Today</span>
+              <span className="badge badge-gray">{orders.length}</span>
+            </div>
+            <b style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', display: 'block', marginTop: 4 }}>
+              {orders.length}
+            </b>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, flex: '1 1 340px' }}>
-          <select
-            value={waiterFilter}
-            onChange={(e) => setWaiterFilter(e.target.value)}
-            style={{ maxWidth: 160, margin: 0, fontSize: '.85rem' }}
-            title="Filter by assigned waiter"
-          >
-            <option value="all">🛎️ All Waiters</option>
-            <option value="unassigned">⚠️ Unassigned</option>
-            {waiters.map((w) => (
-              <option key={w.id} value={w.name}>
-                🛎️ {w.name}
-              </option>
-            ))}
-          </select>
-          <input
-            style={{ flex: 1, margin: 0 }}
-            placeholder="Search by Order #, Table, Waiter..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Orders Grid */}
-      {!filteredOrders.length ? (
-        <div className="empty">
-          No orders found in this view.
-          <br />
-          <button className="btn sm x" style={{ marginTop: 12 }} onClick={loadOrders}>
-            🔄 Refresh List
-          </button>
-        </div>
-      ) : (
-        <div className="order-grid">
-          {filteredOrders.map((ord) => {
-            const isPending = ord.status === 'pending_payment';
-            const isReady = ord.status === 'ready';
-
-            return (
-              <div
-                key={ord.id}
-                className={`order-card ${isPending ? 'urgent' : ''} ${isReady ? 'kitchen-ready' : ''}`}
+        {/* Filter Toolbar & Waiter Selection */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+          {/* Status Tabs */}
+          <div style={{ display: 'flex', gap: 6, background: '#ffffff', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            {[
+              { id: 'pending', label: 'Pending Approval', count: pendingCount },
+              { id: 'kitchen', label: 'In Kitchen', count: kitchenCount },
+              { id: 'ready', label: 'Ready to Serve', count: readyCount },
+              { id: 'completed', label: 'Completed' },
+              { id: 'all', label: 'All Orders', count: orders.length },
+            ].map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setFilter(t.id)}
+                className={`btn btn-sm ${filter === t.id ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ borderRadius: 8, padding: '6px 14px' }}
               >
-                <div>
-                  {/* Card Header */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      marginBottom: 8,
-                    }}
-                  >
-                    <div>
-                      <span
-                        style={{
-                          fontSize: '1.25rem',
-                          fontWeight: 800,
-                          color: 'var(--o)',
-                          marginRight: 8,
-                        }}
-                      >
-                        {ord.order_number}
-                      </span>
-                      <b style={{ fontSize: '1.1rem' }}>Table {ord.table_number}</b>
-                    </div>
-                    <span className="sm">{timeAgo(ord.created_at)}</span>
-                  </div>
+                {t.label} {t.count !== undefined ? `(${t.count})` : ''}
+              </button>
+            ))}
+          </div>
 
-                  {/* Customer Info */}
-                  {(ord.customer_name || ord.customer_phone) && (
-                    <div className="sm" style={{ marginBottom: 8 }}>
-                      👤 {ord.customer_name || 'Guest'}{' '}
-                      {ord.customer_phone && `(${ord.customer_phone})`}
-                    </div>
-                  )}
+          {/* Search & Waiter Filter */}
+          <div style={{ display: 'flex', gap: 10, flex: '1 1 360px', justifyContent: 'flex-end' }}>
+            <select
+              value={waiterFilter}
+              onChange={(e) => setWaiterFilter(e.target.value)}
+              style={{ maxWidth: 170, fontSize: '.85rem', margin: 0 }}
+            >
+              <option value="all">All Waiters</option>
+              <option value="unassigned">⚠️ Unassigned</option>
+              {waiters.map((w) => (
+                <option key={w.id} value={w.name}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
 
-                  {/* Status Badge */}
-                  <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span
-                      className={`badge ${
-                        ord.status === 'pending_payment'
-                          ? 'orange'
-                          : ord.status === 'confirmed'
-                          ? 'blue'
-                          : ord.status === 'preparing'
-                          ? 'purple'
-                          : ord.status === 'ready'
-                          ? 'green'
-                          : ord.status === 'cancelled'
-                          ? 'red'
-                          : 'gray'
-                      }`}
-                    >
-                      ● {ORDER_STATUSES[ord.status]?.en || ord.status}
-                    </span>
-                    {ord.confirmed_by && (
-                      <span className="sm" style={{ fontSize: '.72rem', color: 'var(--mu)' }}>
-                        Verified by: {ord.confirmed_by}
+            <div style={{ position: 'relative', flex: 1, maxWidth: 280 }}>
+              <Search size={15} style={{ position: 'absolute', left: 12, top: 12, color: '#94a3b8' }} />
+              <input
+                placeholder="Search order #, table, waiter..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ paddingLeft: 34, margin: 0 }}
+              />
+            </div>
+
+            <button onClick={loadOrders} className="btn btn-secondary btn-sm" title="Refresh">
+              <RefreshCw size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Orders Grid */}
+        {!filteredOrders.length ? (
+          <div className="card" style={{ textAlign: 'center', padding: '64px 20px' }}>
+            <ShoppingBag size={48} style={{ color: '#cbd5e1', margin: '0 auto 12px' }} />
+            <h4 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>No orders found in this view</h4>
+            <p style={{ color: '#64748b', fontSize: '.88rem', margin: '6px 0 16px' }}>
+              Orders placed by guests or waiters will appear here instantly.
+            </p>
+            <button onClick={loadOrders} className="btn btn-secondary btn-sm">
+              <RefreshCw size={14} /> Refresh Terminal
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 18 }}>
+            {filteredOrders.map((ord) => {
+              const isPending = ord.status === 'pending_payment';
+              const isReady = ord.status === 'ready';
+
+              return (
+                <div
+                  key={ord.id}
+                  className="card"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    border: isPending ? '1.5px solid #f59e0b' : isReady ? '1.5px solid #10b981' : '1px solid #e2e8f0',
+                    boxShadow: isPending ? '0 4px 16px rgba(245, 158, 11, 0.12)' : '0 1px 3px rgba(0,0,0,0.04)',
+                    padding: 20,
+                  }}
+                >
+                  <div>
+                    {/* Top Row: Order #, Table, Time */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                      <div>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginRight: 8 }}>
+                          #{ord.order_number}
+                        </span>
+                        <span className="badge badge-blue" style={{ fontSize: '.8rem' }}>
+                          Table {ord.table_number}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '.78rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Clock size={12} /> {timeAgo(ord.created_at)}
                       </span>
+                    </div>
+
+                    {/* Customer Info */}
+                    {(ord.customer_name || ord.customer_phone) && (
+                      <div style={{ fontSize: '.84rem', color: '#64748b', marginBottom: 8 }}>
+                        Guest: <b style={{ color: '#0f172a' }}>{ord.customer_name || 'Walk-in'}</b>{' '}
+                        {ord.customer_phone && `(${ord.customer_phone})`}
+                      </div>
                     )}
-                  </div>
 
-                  {/* Waiter Attribution Badge & Quick Assignment */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '6px 10px',
-                      borderRadius: 8,
-                      marginBottom: 10,
-                      background: ord.waiter_name ? 'rgba(139, 92, 246, 0.12)' : 'rgba(239, 68, 68, 0.1)',
-                      border: `1px solid ${ord.waiter_name ? 'rgba(139, 92, 246, 0.3)' : 'rgba(239, 68, 68, 0.25)'}`,
-                    }}
-                  >
-                    <span style={{ fontSize: '.84rem', fontWeight: 600, color: ord.waiter_name ? '#c4b5fd' : '#fca5a5' }}>
-                      🛎️ {ord.waiter_name ? `Waiter: ${ord.waiter_name}` : '⚠️ No Waiter Assigned'}
-                    </span>
-                    <button
-                      type="button"
-                      className="btn sm x"
-                      style={{ fontSize: '.74rem', padding: '2px 8px' }}
-                      onClick={() => {
-                        setAssigningWaiterOrder(ord);
-                        setSelectedWaiterName(ord.waiter_name || '');
-                        setCustomWaiterInput('');
+                    {/* Status Badge */}
+                    <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span
+                        className={`badge ${
+                          ord.status === 'pending_payment'
+                            ? 'badge-amber'
+                            : ord.status === 'confirmed'
+                            ? 'badge-blue'
+                            : ord.status === 'preparing'
+                            ? 'badge-purple'
+                            : ord.status === 'ready'
+                            ? 'badge-green'
+                            : ord.status === 'cancelled'
+                            ? 'badge-red'
+                            : 'badge-gray'
+                        }`}
+                      >
+                        ● {ORDER_STATUSES[ord.status]?.en || ord.status}
+                      </span>
+
+                      {ord.confirmed_by && (
+                        <span style={{ fontSize: '.72rem', color: '#94a3b8' }}>
+                          Verified: {ord.confirmed_by}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Waiter Attribution Badge & Quick Assignment */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 10px',
+                        borderRadius: 10,
+                        marginBottom: 12,
+                        background: ord.waiter_name ? '#f5f3ff' : '#fff1f2',
+                        border: `1px solid ${ord.waiter_name ? '#ddd6fe' : '#fecdd3'}`,
                       }}
                     >
-                      {ord.waiter_name ? 'Change Waiter' : '➕ Assign Waiter'}
-                    </button>
-                  </div>
-
-                  {/* Ordered Items List */}
-                  <div
-                    style={{
-                      background: 'var(--card-subtle)',
-                      borderRadius: 10,
-                      padding: 10,
-                      margin: '10px 0',
-                    }}
-                  >
-                    {ord.items?.map((it, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          padding: '3px 0',
-                          fontSize: '.9rem',
-                        }}
-                      >
-                        <div>
-                          <b>{it.qty}x</b> {it.name}
-                          {it.notes && (
-                            <div style={{ fontSize: '.78rem', color: 'var(--o)' }}>
-                              📝 {it.notes}
-                            </div>
-                          )}
-                        </div>
-                        <span>{(it.price * it.qty).toLocaleString()} ETB</span>
-                      </div>
-                    ))}
-                    {ord.notes && (
-                      <div
-                        style={{
-                          marginTop: 6,
-                          paddingTop: 6,
-                          borderTop: '1px dashed var(--bd)',
-                          fontSize: '.82rem',
-                          color: 'var(--o)',
-                        }}
-                      >
-                        <b>General Note:</b> {ord.notes}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Payment Proof Verification Box */}
-                  <div
-                    style={{
-                      border: '1px solid var(--bd)',
-                      borderRadius: 10,
-                      padding: 10,
-                      margin: '10px 0',
-                      fontSize: '.85rem',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span>Payment Method:</span>
-                      <b>{ord.payment_method === 'cash' ? '💵 Cash' : '📱 Digital Transfer'}</b>
-                    </div>
-
-                    {ord.transaction_ref && (
-                      <div style={{ wordBreak: 'break-all', marginTop: 4 }}>
-                        <span className="sm">Transaction Ref/Link:</span>
-                        <div style={{ fontWeight: 600, color: 'var(--o)' }}>
-                          {ord.transaction_ref.startsWith('http') ? (
-                            <a
-                              href={ord.transaction_ref}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{ color: 'var(--b)' }}
-                            >
-                              🔗 Open Transaction Link
-                            </a>
-                          ) : (
-                            ord.transaction_ref
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {ord.screenshot_url && (
-                      <div style={{ marginTop: 8 }}>
-                        <div className="sm" style={{ marginBottom: 4 }}>
-                          Payment Screenshot / Receipt:
-                        </div>
-                        <img
-                          src={ord.screenshot_url}
-                          alt="Receipt Proof"
-                          style={{
-                            height: 70,
-                            borderRadius: 8,
-                            cursor: 'pointer',
-                            border: '1px solid var(--bd)',
-                          }}
-                          onClick={() => setActiveReceiptImage(ord.screenshot_url)}
-                          title="Click to view full screenshot"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Total Amount */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      fontWeight: 800,
-                      fontSize: '1.2rem',
-                      margin: '10px 0',
-                    }}
-                  >
-                    <span>Total:</span>
-                    <span style={{ color: 'var(--o)' }}>
-                      {Number(ord.total).toLocaleString()} ETB
-                    </span>
-                  </div>
-
-                  {ord.rejection_reason && (
-                    <div style={{ color: '#ff8a7a', fontSize: '.84rem', margin: '6px 0' }}>
-                      <b>Rejection:</b> {ord.rejection_reason}
-                    </div>
-                  )}
-                </div>
-
-                {/* Cashier Action Buttons */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
-                  {isPending && (
-                    <>
-                      <button className="btn" onClick={() => handleConfirmPayment(ord)}>
-                        ✅ Confirm Payment & Send to Kitchen
-                      </button>
+                      <span style={{ fontSize: '.82rem', fontWeight: 600, color: ord.waiter_name ? '#6d28d9' : '#be123c', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Users size={14} />
+                        {ord.waiter_name ? `Server: ${ord.waiter_name}` : 'Unassigned Waiter'}
+                      </span>
                       <button
-                        className="btn danger sm"
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: '.74rem', padding: '2px 8px' }}
                         onClick={() => {
-                          setRejectingOrder(ord);
-                          setRejectReason('');
+                          setAssigningWaiterOrder(ord);
+                          setSelectedWaiterName(ord.waiter_name || '');
+                          setCustomWaiterInput('');
                         }}
                       >
-                        ❌ Reject Order
+                        {ord.waiter_name ? 'Change' : 'Assign'}
                       </button>
-                    </>
-                  )}
-
-                  {ord.status === 'confirmed' && (
-                    <div className="sm" style={{ textAlign: 'center', color: 'var(--b)' }}>
-                      ⏳ Sent to Kitchen (Waiting for Chef)
                     </div>
-                  )}
 
-                  {ord.status === 'preparing' && (
-                    <div className="sm" style={{ textAlign: 'center', color: 'var(--p)' }}>
-                      👨‍🍳 Chef is currently preparing this dish
+                    {/* Ordered Items List */}
+                    <div
+                      style={{
+                        background: '#f8fafc',
+                        border: '1px solid #f1f5f9',
+                        borderRadius: 10,
+                        padding: 12,
+                        marginBottom: 12,
+                      }}
+                    >
+                      {ord.items?.map((it, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            padding: '3px 0',
+                            fontSize: '.88rem',
+                          }}
+                        >
+                          <div>
+                            <b>{it.qty}x</b> {it.name}
+                            {it.notes && (
+                              <div style={{ fontSize: '.76rem', color: '#d97706' }}>
+                                Note: {it.notes}
+                              </div>
+                            )}
+                          </div>
+                          <span style={{ fontWeight: 600 }}>{(it.price * it.qty).toLocaleString()} ETB</span>
+                        </div>
+                      ))}
+                      {ord.notes && (
+                        <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px dashed #e2e8f0', fontSize: '.8rem', color: '#d97706' }}>
+                          <b>Customer Note:</b> {ord.notes}
+                        </div>
+                      )}
                     </div>
-                  )}
 
-                  {isReady && (
-                    <button className="btn" onClick={() => handleCompleteOrder(ord)}>
-                      🍽️ Mark Served & Completed
-                    </button>
-                  )}
+                    {/* Payment Proof / Method Box */}
+                    <div
+                      style={{
+                        border: '1px solid #f1f5f9',
+                        background: '#ffffff',
+                        borderRadius: 10,
+                        padding: 10,
+                        marginBottom: 14,
+                        fontSize: '.84rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span style={{ color: '#64748b' }}>Payment Mode:</span>
+                        <b>{ord.payment_method === 'cash' ? '💵 Cash Settle' : '📱 Digital Transfer'}</b>
+                      </div>
 
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="btn x sm" style={{ flex: 1 }} onClick={() => printReceipt(ord)}>
-                      🖨️ Print Bill
-                    </button>
-                    {['confirmed', 'preparing'].includes(ord.status) && (
-                      <button className="btn sm o" style={{ flex: 1 }} onClick={() => handleMarkReady(ord)}>
-                        Mark Ready
+                      {ord.transaction_ref && (
+                        <div style={{ marginTop: 4 }}>
+                          <span style={{ fontSize: '.76rem', color: '#64748b' }}>Txn Reference:</span>
+                          <div style={{ fontWeight: 700, color: '#2563eb', wordBreak: 'break-all' }}>
+                            {ord.transaction_ref}
+                          </div>
+                        </div>
+                      )}
+
+                      {ord.screenshot_url && (
+                        <div style={{ marginTop: 8 }}>
+                          <span style={{ fontSize: '.76rem', color: '#64748b', display: 'block', marginBottom: 4 }}>
+                            Receipt Screenshot:
+                          </span>
+                          <img
+                            src={ord.screenshot_url}
+                            alt="Receipt Proof"
+                            style={{
+                              height: 64,
+                              borderRadius: 8,
+                              cursor: 'pointer',
+                              border: '1px solid #e2e8f0',
+                            }}
+                            onClick={() => setActiveReceiptImage(ord.screenshot_url)}
+                            title="Click to view full screenshot"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Total Amount */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                      <span style={{ fontSize: '.9rem', color: '#64748b', fontWeight: 600 }}>Total Payable:</span>
+                      <b style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>
+                        {Number(ord.total).toLocaleString()} ETB
+                      </b>
+                    </div>
+                  </div>
+
+                  {/* Cashier Action Buttons */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {isPending && (
+                      <>
+                        <button onClick={() => handleConfirmPayment(ord)} className="btn btn-primary" style={{ width: '100%' }}>
+                          <Check size={16} /> Confirm & Send to Kitchen
+                        </button>
+                        <button
+                          onClick={() => {
+                            setRejectingOrder(ord);
+                            setRejectReason('');
+                          }}
+                          className="btn btn-danger btn-sm"
+                          style={{ width: '100%' }}
+                        >
+                          <X size={14} /> Reject Order
+                        </button>
+                      </>
+                    )}
+
+                    {ord.status === 'confirmed' && (
+                      <div style={{ textAlign: 'center', padding: '6px 0', fontSize: '.82rem', color: '#2563eb', fontWeight: 600 }}>
+                        ⏳ Dispatched to Kitchen (Waiting for Chef)
+                      </div>
+                    )}
+
+                    {ord.status === 'preparing' && (
+                      <div style={{ textAlign: 'center', padding: '6px 0', fontSize: '.82rem', color: '#7c3aed', fontWeight: 600 }}>
+                        👨‍🍳 Chef is actively preparing food
+                      </div>
+                    )}
+
+                    {isReady && (
+                      <button onClick={() => handleCompleteOrder(ord)} className="btn btn-success" style={{ width: '100%' }}>
+                        <CheckCircle2 size={16} /> Mark Served & Settle Bill
                       </button>
                     )}
+
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => printReceipt(ord)} className="btn btn-secondary btn-sm" style={{ flex: 1 }}>
+                        <Printer size={14} /> Print Bill
+                      </button>
+                      {['confirmed', 'preparing'].includes(ord.status) && (
+                        <button onClick={() => handleMarkReady(ord)} className="btn btn-secondary btn-sm" style={{ flex: 1 }}>
+                          Mark Ready
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </main>
 
       {/* Screenshot Lightbox Modal */}
       {activeReceiptImage && (
-        <div className="lightbox" onClick={() => setActiveReceiptImage(null)}>
-          <div style={{ maxWidth: 800, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-            <img src={activeReceiptImage} alt="Payment Receipt" />
-            <div style={{ marginTop: 12 }}>
-              <button className="btn" onClick={() => setActiveReceiptImage(null)}>
-                Close Preview
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Rejection Prompt Modal */}
-      {rejectingOrder && (
-        <div className="mod" onClick={() => setRejectingOrder(null)}>
-          <div className="sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="in">
-              <h3 style={{ color: '#ff8a7a' }}>Reject Order {rejectingOrder.order_number}</h3>
-              <p className="sm">
-                Provide a reason why this order/payment is rejected so the customer is notified.
-              </p>
-              <textarea
-                rows={3}
-                placeholder="e.g. Transaction code not received on Telebirr, screenshot unclear, or item out of stock."
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-              />
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <button className="btn danger" style={{ flex: 1 }} onClick={handleRejectOrder}>
-                  Confirm Rejection
-                </button>
-                <button className="btn x" onClick={() => setRejectingOrder(null)}>
-                  Cancel
-                </button>
-              </div>
-            </div>
+        <div className="modal-backdrop" onClick={() => setActiveReceiptImage(null)}>
+          <div style={{ maxWidth: 640, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <img src={activeReceiptImage} alt="Payment Receipt" style={{ borderRadius: 16, maxHeight: '80vh', margin: '0 auto', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }} />
+            <button onClick={() => setActiveReceiptImage(null)} className="btn btn-primary" style={{ marginTop: 14 }}>
+              Close Preview
+            </button>
           </div>
         </div>
       )}
 
       {/* Walk-in POS Modal */}
       {showPOS && (
-        <div className="mod" onClick={() => setShowPOS(false)}>
-          <div className="sheet" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 650 }}>
-            <div className="in">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0 }}>Create Walk-in / Phone Order</h3>
-                <button className="btn x sm" onClick={() => setShowPOS(false)}>
-                  ✕
-                </button>
+        <div className="modal-backdrop" onClick={() => setShowPOS(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 680 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, paddingBottom: 12, borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Plus size={20} color="#2563eb" />
+                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>Create Walk-in / Phone Order</h3>
               </div>
+              <button onClick={() => setShowPOS(false)} className="btn btn-ghost btn-sm" style={{ padding: 6 }}>
+                <X size={18} />
+              </button>
+            </div>
 
-              <form onSubmit={submitPosOrder} style={{ marginTop: 14 }}>
-                <div className="row">
+            <form onSubmit={submitPosOrder}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Table Number or Counter *</label>
                   <input
                     required
-                    placeholder="Table # or Walk-in"
+                    placeholder="e.g. Table 5 or Counter"
                     value={posTable}
                     onChange={(e) => setPosTable(e.target.value)}
                   />
+                </div>
+                <div>
+                  <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Customer Name (Optional)</label>
                   <input
-                    placeholder="Customer Name (optional)"
+                    placeholder="e.g. Walk-in Guest"
                     value={posCustomer}
                     onChange={(e) => setPosCustomer(e.target.value)}
                   />
                 </div>
+              </div>
 
-                <div style={{ marginTop: 8, marginBottom: 6 }}>
-                  <label style={{ fontSize: '.82rem', color: 'var(--mu)', display: 'block', marginBottom: 3 }}>
-                    Assign Waiter for this Order (አስተናጋጅ ምረጥ):
-                  </label>
-                  <select
-                    value={posWaiter}
-                    onChange={(e) => setPosWaiter(e.target.value)}
-                    style={{ width: '100%', margin: 0 }}
-                  >
-                    <option value="">Counter Walk-in (No Waiter)</option>
-                    {waiters.map((w) => (
-                      <option key={w.id} value={w.name}>
-                        🛎️ Waiter: {w.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ fontWeight: 700, margin: '10px 0 6px' }}>Select Dishes:</div>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                    gap: 6,
-                    maxHeight: 180,
-                    overflowY: 'auto',
-                    border: '1px solid var(--bd)',
-                    borderRadius: 10,
-                    padding: 8,
-                  }}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Assign Waiter (አስተናጋጅ ምረጥ):</label>
+                <select
+                  value={posWaiter}
+                  onChange={(e) => setPosWaiter(e.target.value)}
                 >
-                  {menuItems.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className="btn sm x"
-                      style={{ textAlign: 'left', display: 'block', padding: '6px 8px' }}
-                      onClick={() => addPosItem(m)}
-                    >
-                      <div style={{ fontWeight: 600 }}>{m.name}</div>
-                      <div className="sm">{m.price} ETB</div>
-                    </button>
+                  <option value="">Counter Walk-in (No Waiter)</option>
+                  {waiters.map((w) => (
+                    <option key={w.id} value={w.name}>
+                      Waiter: {w.name}
+                    </option>
                   ))}
-                </div>
+                </select>
+              </div>
 
-                {/* Selected POS items */}
-                {posItems.length > 0 && (
-                  <div style={{ marginTop: 14, borderTop: '1px solid var(--bd)', paddingTop: 10 }}>
-                    <div style={{ fontWeight: 700, marginBottom: 6 }}>Selected Items:</div>
-                    {posItems.map((p) => (
-                      <div
-                        key={p.id}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          padding: '4px 0',
-                        }}
-                      >
-                        <span>
-                          {p.name} ({p.price} ETB)
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <button
-                            type="button"
-                            className="btn x sm"
-                            onClick={() => updatePosQty(p.id, -1)}
-                          >
-                            -
-                          </button>
-                          <b>{p.qty}</b>
-                          <button
-                            type="button"
-                            className="btn x sm"
-                            onClick={() => updatePosQty(p.id, 1)}
-                          >
-                            +
-                          </button>
-                        </div>
+              <div style={{ fontWeight: 700, fontSize: '.9rem', marginBottom: 8 }}>Select Dishes from Menu:</div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                  gap: 8,
+                  maxHeight: 180,
+                  overflowY: 'auto',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 12,
+                  padding: 10,
+                  marginBottom: 14,
+                }}
+              >
+                {menuItems.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    style={{ textAlign: 'left', display: 'block', padding: '8px 10px', height: 'auto' }}
+                    onClick={() => addPosItem(m)}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: '.84rem', color: '#0f172a' }}>{m.name}</div>
+                    <div style={{ fontSize: '.76rem', color: '#2563eb' }}>{m.price} ETB</div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Selected POS items */}
+              {posItems.length > 0 && (
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 12, marginBottom: 16 }}>
+                  <div style={{ fontWeight: 700, fontSize: '.88rem', marginBottom: 8 }}>Order Items:</div>
+                  {posItems.map((p) => (
+                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: '.88rem' }}>
+                      <span>
+                        {p.name} ({p.price} ETB)
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button type="button" className="btn btn-secondary btn-sm" style={{ padding: '2px 8px' }} onClick={() => updatePosQty(p.id, -1)}>
+                          -
+                        </button>
+                        <b>{p.qty}</b>
+                        <button type="button" className="btn btn-secondary btn-sm" style={{ padding: '2px 8px' }} onClick={() => updatePosQty(p.id, 1)}>
+                          +
+                        </button>
                       </div>
-                    ))}
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        fontWeight: 800,
-                        fontSize: '1.15rem',
-                        marginTop: 10,
-                      }}
-                    >
-                      <span>Total:</span>
-                      <span style={{ color: 'var(--o)' }}>{posTotal.toLocaleString()} ETB</span>
                     </div>
-                  </div>
-                )}
+                  ))}
 
-                <button
-                  type="submit"
-                  className="btn"
-                  style={{ width: '100%', marginTop: 14, padding: 12 }}
-                  disabled={!posItems.length}
-                >
-                  Confirm & Send to Kitchen ({posTotal.toLocaleString()} ETB)
-                </button>
-              </form>
-            </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.2rem', marginTop: 12 }}>
+                    <span>Total Amount:</span>
+                    <span style={{ color: '#2563eb' }}>{posTotal.toLocaleString()} ETB</span>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '12px' }}
+                disabled={!posItems.length}
+              >
+                <Check size={16} /> Confirm & Send to Kitchen ({posTotal.toLocaleString()} ETB)
+              </button>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Assign / Change Waiter Modal Popup */}
+      {/* Waiter Assignment Modal */}
       {assigningWaiterOrder && (
-        <div className="mod" onClick={() => setAssigningWaiterOrder(null)}>
-          <div className="sheet" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
-            <div className="in">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, fontSize: '1.2rem' }}>
-                  🛎️ Assign Waiter to Order {assigningWaiterOrder.order_number}
+        <div className="modal-backdrop" onClick={() => setAssigningWaiterOrder(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <UserCheck size={20} color="#2563eb" />
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+                  Assign Waiter (Order #{assigningWaiterOrder.order_number})
                 </h3>
-                <button className="btn x sm" onClick={() => setAssigningWaiterOrder(null)}>
-                  ✕
-                </button>
               </div>
-              <p className="sm" style={{ color: 'var(--mu)', marginTop: 4 }}>
-                Resolves waiter ambiguity for Table {assigningWaiterOrder.table_number}. The selected waiter is officially recorded as the server for this order.
-              </p>
+              <button onClick={() => setAssigningWaiterOrder(null)} className="btn btn-ghost btn-sm" style={{ padding: 6 }}>
+                <X size={18} />
+              </button>
+            </div>
 
-              <form onSubmit={handleSaveWaiterAssignment} style={{ marginTop: 14 }}>
-                <label style={{ fontSize: '.84rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                  Select from Registered Waiters:
+            <p style={{ color: '#64748b', fontSize: '.84rem', margin: '0 0 16px' }}>
+              Assign an official server for Table {assigningWaiterOrder.table_number}. The waiter identity will appear on KDS kitchen tickets and thermal receipts.
+            </p>
+
+            <form onSubmit={handleSaveWaiterAssignment}>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                  Select Registered Waiter:
                 </label>
                 <select
                   value={selectedWaiterName}
@@ -951,101 +913,84 @@ export default function CashierPage() {
                     setSelectedWaiterName(e.target.value);
                     setCustomWaiterInput('');
                   }}
-                  style={{ width: '100%', marginBottom: 12 }}
                 >
                   <option value="">-- Choose Waiter --</option>
                   {waiters.map((w) => (
                     <option key={w.id} value={w.name}>
-                      🛎️ {w.name} ({w.email})
+                      {w.name} ({w.email})
                     </option>
                   ))}
                 </select>
+              </div>
 
-                <label style={{ fontSize: '.84rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                  Or Type Custom Waiter Name:
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                  Or Type Custom Server Name:
                 </label>
                 <input
-                  placeholder="e.g. Dawit, Tigist..."
+                  placeholder="e.g. Dawit, Tigist, Helen..."
                   value={customWaiterInput}
                   onChange={(e) => {
                     setCustomWaiterInput(e.target.value);
                     setSelectedWaiterName('');
                   }}
-                  style={{ width: '100%', marginBottom: 16 }}
                 />
+              </div>
 
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                  <button
-                    type="button"
-                    className="btn x"
-                    onClick={() => setAssigningWaiterOrder(null)}
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn o" style={{ fontWeight: 600 }}>
-                    Save Waiter Assignment
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setAssigningWaiterOrder(null)} className="btn btn-secondary">
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  <Check size={16} /> Save Server Assignment
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Printable Receipt Hidden Template */}
+      {/* Printable Receipt Template */}
       {printableOrder && (
         <div id="printable-receipt">
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
-            <h2 style={{ margin: '0 0 4px', fontSize: 18, color: '#000' }}>HIRAGA RESTAURANT</h2>
-            <div>Official Guest Receipt</div>
-            <div>Order {printableOrder.order_number}</div>
+            <h2 style={{ margin: '0 0 4px', fontSize: 18, color: '#000' }}>ROYAL HOTEL RESTAURANT</h2>
+            <div>Official Guest Invoice</div>
+            <div>Order #{printableOrder.order_number}</div>
             <div>Table: {printableOrder.table_number}</div>
-            <div>Server / Waiter: {printableOrder.waiter_name || 'Counter Staff'}</div>
+            <div>Server / Waiter: {printableOrder.waiter_name || 'Front Desk'}</div>
             <div>Date: {new Date(printableOrder.created_at).toLocaleString()}</div>
           </div>
           <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
           {printableOrder.items?.map((it, idx) => (
-            <div
-              key={idx}
-              style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}
-            >
-              <span>
-                {it.qty}x {it.name}
-              </span>
+            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
+              <span>{it.qty}x {it.name}</span>
               <span>{(it.price * it.qty).toLocaleString()} ETB</span>
             </div>
           ))}
           <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              fontWeight: 800,
-              fontSize: 15,
-            }}
-          >
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: 15 }}>
             <span>TOTAL:</span>
             <span>{Number(printableOrder.total).toLocaleString()} ETB</span>
           </div>
           <div style={{ margin: '8px 0', fontSize: 12 }}>
-            Payment: {printableOrder.payment_method?.toUpperCase()} (
-            {printableOrder.payment_status?.toUpperCase()})
+            Payment: {printableOrder.payment_method?.toUpperCase()} ({printableOrder.payment_status?.toUpperCase()})
             {printableOrder.transaction_ref && <div>Ref: {printableOrder.transaction_ref}</div>}
           </div>
           <div style={{ textAlign: 'center', marginTop: 16 }}>
-            <div>Thank you for dining with us!</div>
+            <div>Thank you for choosing Royal Hotel!</div>
             <div>እባክዎ ደግመው ይጎብኙን!</div>
           </div>
         </div>
       )}
 
-      {/* 100% Free Staff Security, Password Change & 2FA Modal */}
+      {/* Staff Security & 2FA Modal */}
       <StaffSecurityModal
         isOpen={showSecurityModal}
         onClose={() => setShowSecurityModal(false)}
         session={session}
         lang={lang}
       />
-    </main>
+    </div>
   );
 }
