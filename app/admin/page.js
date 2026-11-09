@@ -244,41 +244,46 @@ export default function Admin() {
   const saveDish = async (e) => {
     e.preventDefault();
     setBusy(true);
-    let image_url = f.image_url;
-    if (file) {
-      const path = `${Date.now()}.jpg`;
-      const up = await supabase.storage
-        .from('menu')
-        .upload(path, await shrink(file), { contentType: 'image/jpeg' });
-      if (up.error) {
-        setBusy(false);
-        return say('Picture upload failed: ' + up.error.message, true);
+    try {
+      let image_url = f.image_url || null;
+      if (file) {
+        const path = `${Date.now()}.jpg`;
+        const up = await supabase.storage
+          .from('menu')
+          .upload(path, await shrink(file), { contentType: 'image/jpeg' });
+        if (up.error) {
+          setBusy(false);
+          return say('Picture upload failed: ' + up.error.message, true);
+        }
+        image_url = supabase.storage.from('menu').getPublicUrl(path).data.publicUrl;
       }
-      image_url = supabase.storage.from('menu').getPublicUrl(path).data.publicUrl;
+      const row = {
+        name: (f.name || '').trim(),
+        name_am: (f.name_am || '').trim() || null,
+        description: (f.description || '').trim() || null,
+        description_am: (f.description_am || '').trim() || null,
+        price: Number(f.price) || 0,
+        category_id: f.category_id ? Number(f.category_id) : null,
+        available: f.available ?? true,
+        image_url,
+        tags: Array.isArray(f.tags) ? f.tags : [],
+        special: Boolean(f.special),
+      };
+      const { error } = editId
+        ? await supabase.from('items').update(row).eq('id', editId)
+        : await supabase.from('items').insert(row);
+      setBusy(false);
+      if (error) return say(error.message, true);
+      setF(EMPTY);
+      setFile(null);
+      setEditId(null);
+      setShowDishModal(false);
+      say(editId ? 'Dish updated successfully!' : 'Dish added successfully!');
+      load();
+    } catch (err) {
+      setBusy(false);
+      say('Error saving dish: ' + (err?.message || 'Unknown error'), true);
     }
-    const row = {
-      name: f.name.trim(),
-      name_am: f.name_am.trim() || null,
-      description: f.description.trim() || null,
-      description_am: f.description_am.trim() || null,
-      price: Number(f.price) || 0,
-      category_id: f.category_id || null,
-      available: f.available,
-      image_url,
-      tags: f.tags || [],
-      special: !!f.special,
-    };
-    const { error } = editId
-      ? await supabase.from('items').update(row).eq('id', editId)
-      : await supabase.from('items').insert(row);
-    setBusy(false);
-    if (error) return say(error.message, true);
-    setF(EMPTY);
-    setFile(null);
-    setEditId(null);
-    setShowDishModal(false);
-    say(editId ? 'Dish updated successfully!' : 'Dish added successfully!');
-    load();
   };
 
   const openAddDish = () => {
@@ -292,11 +297,16 @@ export default function Admin() {
     setEditId(i.id);
     setFile(null);
     setF({
-      ...EMPTY,
-      ...i,
-      price: i.price,
-      category_id: i.category_id || '',
-      tags: i.tags || [],
+      name: i.name || '',
+      name_am: i.name_am || '',
+      description: i.description || '',
+      description_am: i.description_am || '',
+      price: i.price != null ? String(i.price) : '',
+      category_id: i.category_id != null ? String(i.category_id) : '',
+      available: i.available ?? true,
+      image_url: i.image_url || '',
+      tags: Array.isArray(i.tags) ? i.tags : [],
+      special: Boolean(i.special),
     });
     setShowDishModal(true);
   };
@@ -1718,6 +1728,188 @@ alter publication supabase_realtime add table orders;`;
               </div>
             </div>
           )}
+
+          {/* =================================================================== */}
+          {/* TAB 10: MENU REORDERING                                             */}
+          {/* =================================================================== */}
+          {currentTab === 'reordering' && (
+            <div>
+              <div style={{ marginBottom: 20 }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#0f172a' }}>Menu Reordering & Priority</h2>
+                <p style={{ margin: 0, color: '#64748b', fontSize: '.9rem' }}>
+                  Use the Up (↑) and Down (↓) buttons to arrange how categories and dishes appear on the digital menu.
+                </p>
+              </div>
+
+              {/* Category Reordering */}
+              <div className="card" style={{ marginBottom: 20 }}>
+                <h3 style={{ margin: '0 0 14px', fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>
+                  Category Display Sequence
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {cats.map((c, idx) => (
+                    <div
+                      key={c.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 16px',
+                        background: '#f8fafc',
+                        borderRadius: 10,
+                        border: '1px solid #e2e8f0',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: '.85rem', fontWeight: 700, color: '#64748b', width: 24 }}>#{idx + 1}</span>
+                        <div>
+                          <b style={{ fontSize: '.95rem', color: '#0f172a' }}>{c.name}</b>
+                          {c.name_am && <span style={{ color: '#64748b', fontSize: '.85rem', marginLeft: 8 }}>/ {c.name_am}</span>}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          disabled={idx === 0}
+                          onClick={() => reorder('categories', cats, c, -1, () => true)}
+                          className="btn btn-secondary btn-sm"
+                          title="Move Category Up"
+                        >
+                          ↑ Up
+                        </button>
+                        <button
+                          disabled={idx === cats.length - 1}
+                          onClick={() => reorder('categories', cats, c, 1, () => true)}
+                          className="btn btn-secondary btn-sm"
+                          title="Move Category Down"
+                        >
+                          ↓ Down
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dish Reordering by Category */}
+              <div className="card">
+                <h3 style={{ margin: '0 0 14px', fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>
+                  Dish Reordering per Category
+                </h3>
+                {cats.map((c) => {
+                  const catItems = items.filter((it) => it.category_id === c.id);
+                  return (
+                    <div key={c.id} style={{ marginBottom: 20 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid #f1f5f9' }}>
+                        <b style={{ color: '#2563eb', fontSize: '1rem' }}>{c.name} ({catItems.length} dishes)</b>
+                      </div>
+                      {catItems.length === 0 ? (
+                        <p style={{ fontSize: '.84rem', color: '#94a3b8', fontStyle: 'italic', margin: '4px 0 12px' }}>No dishes assigned to this category.</p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {catItems.map((dish, dIdx) => (
+                            <div
+                              key={dish.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '8px 14px',
+                                background: '#ffffff',
+                                borderRadius: 8,
+                                border: '1px solid #e2e8f0',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <span style={{ fontSize: '.8rem', color: '#94a3b8', width: 20 }}>{dIdx + 1}.</span>
+                                <b style={{ fontSize: '.9rem', color: '#1e293b' }}>{dish.name}</b>
+                                {dish.name_am && <span style={{ fontSize: '.8rem', color: '#64748b' }}>/ {dish.name_am}</span>}
+                                <span style={{ fontSize: '.82rem', color: '#2563eb', fontWeight: 600 }}>{dish.price} ETB</span>
+                              </div>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button
+                                  disabled={dIdx === 0}
+                                  onClick={() => reorder('items', items, dish, -1, (r) => r.category_id)}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ padding: '4px 10px', fontSize: '.8rem' }}
+                                >
+                                  ↑
+                                </button>
+                                <button
+                                  disabled={dIdx === catItems.length - 1}
+                                  onClick={() => reorder('items', items, dish, 1, (r) => r.category_id)}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ padding: '4px 10px', fontSize: '.8rem' }}
+                                >
+                                  ↓
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* =================================================================== */}
+          {/* TAB 11: DIETARY TAGS                                                */}
+          {/* =================================================================== */}
+          {currentTab === 'tags' && (
+            <div>
+              <div style={{ marginBottom: 20 }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 4px', color: '#0f172a' }}>Dietary & Special Tags</h2>
+                <p style={{ margin: 0, color: '#64748b', fontSize: '.9rem' }}>
+                  Filter and inspect dishes assigned to customer dietary preference tags.
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                {TAGS.map((t) => {
+                  const taggedDishes = items.filter((it) => (it.tags || []).includes(t.k));
+                  return (
+                    <div key={t.k} className="card" style={{ padding: 20 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                        <div>
+                          <div className="badge badge-blue" style={{ fontSize: '.85rem', padding: '6px 12px' }}>
+                            {t.en} / {t.am}
+                          </div>
+                          <p style={{ color: '#64748b', fontSize: '.82rem', margin: '8px 0 0' }}>
+                            Key: <code>{t.k}</code>
+                          </p>
+                        </div>
+                        <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#2563eb' }}>
+                          {taggedDishes.length}
+                        </span>
+                      </div>
+
+                      <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 10 }}>
+                        <b style={{ fontSize: '.82rem', color: '#475569', display: 'block', marginBottom: 6 }}>Tagged Dishes:</b>
+                        {taggedDishes.length === 0 ? (
+                          <span style={{ fontSize: '.8rem', color: '#94a3b8', fontStyle: 'italic' }}>No dishes tagged yet</span>
+                        ) : (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {taggedDishes.map((td) => (
+                              <button
+                                key={td.id}
+                                onClick={() => openEditDish(td)}
+                                className="btn btn-secondary btn-sm"
+                                style={{ padding: '3px 8px', fontSize: '.75rem' }}
+                              >
+                                {td.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </main>
 
         {/* Global SaaS Footer */}
@@ -1865,7 +2057,7 @@ alter publication supabase_realtime add table orders;`;
                     required
                     autoFocus
                     placeholder="e.g. Special Beef Tibbs"
-                    value={f.name}
+                    value={f.name || ''}
                     onChange={(e) => setF({ ...f, name: e.target.value })}
                   />
                 </div>
@@ -1873,7 +2065,7 @@ alter publication supabase_realtime add table orders;`;
                   <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Amharic Name (ስም በአማርኛ)</label>
                   <input
                     placeholder="ምሳሌ፡ የበሬ ልዩ ጥብስ"
-                    value={f.name_am}
+                    value={f.name_am || ''}
                     onChange={(e) => setF({ ...f, name_am: e.target.value })}
                   />
                 </div>
@@ -1887,14 +2079,14 @@ alter publication supabase_realtime add table orders;`;
                     type="number"
                     min="0"
                     placeholder="450"
-                    value={f.price}
+                    value={f.price ?? ''}
                     onChange={(e) => setF({ ...f, price: e.target.value })}
                   />
                 </div>
                 <div>
                   <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Category (ምድብ)</label>
                   <select
-                    value={f.category_id}
+                    value={f.category_id || ''}
                     onChange={(e) => setF({ ...f, category_id: e.target.value })}
                   >
                     <option value="">No category</option>
@@ -1907,19 +2099,84 @@ alter publication supabase_realtime add table orders;`;
                 </div>
               </div>
 
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Description (English)</label>
-                <textarea
-                  rows={2}
-                  placeholder="Ingredients, preparation details..."
-                  value={f.description}
-                  onChange={(e) => setF({ ...f, description: e.target.value })}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Description (English)</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Ingredients, preparation details..."
+                    value={f.description || ''}
+                    onChange={(e) => setF({ ...f, description: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Description (Amharic - መግለጫ)</label>
+                  <textarea
+                    rows={2}
+                    placeholder="የምግቡ ዝርዝር መረጃ..."
+                    value={f.description_am || ''}
+                    onChange={(e) => setF({ ...f, description_am: e.target.value })}
+                  />
+                </div>
               </div>
 
-              {/* Photo Upload */}
+              {/* Dietary Tags */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                  Dietary & Special Tags (መለያዎች)
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {TAGS.map((t) => {
+                    const active = (f.tags || []).includes(t.k);
+                    return (
+                      <button
+                        key={t.k}
+                        type="button"
+                        onClick={() => {
+                          const cur = f.tags || [];
+                          setF({
+                            ...f,
+                            tags: active ? cur.filter((x) => x !== t.k) : [...cur, t.k],
+                          });
+                        }}
+                        className={`badge ${active ? 'badge-blue' : 'badge-gray'}`}
+                        style={{
+                          cursor: 'pointer',
+                          padding: '6px 12px',
+                          fontSize: '.8rem',
+                          borderRadius: 8,
+                          border: active ? '1px solid #3b82f6' : '1px solid #e2e8f0',
+                          background: active ? '#eff6ff' : '#f8fafc',
+                          color: active ? '#1d4ed8' : '#64748b',
+                          fontWeight: active ? 700 : 500,
+                        }}
+                      >
+                        {active ? '✓ ' : '+ '} {t.en} / {t.am}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Photo Upload & Preview */}
               <div style={{ marginBottom: 14 }}>
                 <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 4 }}>Dish Photo (ምስል)</label>
+                {f.image_url && !file && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, padding: 8, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                    <img src={f.image_url} alt="" style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover' }} />
+                    <span style={{ fontSize: '.8rem', color: '#64748b', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      Current photo attached
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setF({ ...f, image_url: '' })}
+                      className="btn btn-ghost btn-sm"
+                      style={{ color: '#ef4444', fontSize: '.75rem', padding: '2px 8px' }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
                 <input
                   type="file"
                   accept="image/*"
@@ -1928,9 +2185,9 @@ alter publication supabase_realtime add table orders;`;
                 />
               </div>
 
-              {/* Special checkbox */}
-              <div style={{ marginBottom: 18 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '.9rem', cursor: 'pointer', fontWeight: 600, color: '#d97706' }}>
+              {/* Special checkbox & Stock Availability */}
+              <div style={{ display: 'flex', gap: 20, marginBottom: 18, flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '.88rem', cursor: 'pointer', fontWeight: 600, color: '#d97706' }}>
                   <input
                     type="checkbox"
                     checked={!!f.special}
@@ -1938,6 +2195,15 @@ alter publication supabase_realtime add table orders;`;
                     style={{ width: 'auto', margin: 0 }}
                   />
                   <Sparkles size={16} /> Mark as &quot;Today&apos;s Special&quot;
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '.88rem', cursor: 'pointer', fontWeight: 600, color: f.available ? '#16a34a' : '#64748b' }}>
+                  <input
+                    type="checkbox"
+                    checked={f.available ?? true}
+                    onChange={(e) => setF({ ...f, available: e.target.checked })}
+                    style={{ width: 'auto', margin: 0 }}
+                  />
+                  <CheckCircle2 size={16} /> Available in Stock
                 </label>
               </div>
 
