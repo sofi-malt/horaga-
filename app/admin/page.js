@@ -1944,8 +1944,8 @@ alter publication supabase_realtime add table orders;`;
 
       {/* MODAL 1: ADD STAFF MEMBER */}
       {showAddStaffModal && (
-        <div className="modal-backdrop">
-          <div className="modal-card">
+        <div className="modal-backdrop" onClick={() => setShowAddStaffModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>Add Staff Member</h3>
@@ -2033,8 +2033,8 @@ alter publication supabase_realtime add table orders;`;
 
       {/* MODAL 2: ADD / EDIT DISH */}
       {showDishModal && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: 620 }}>
+        <div className="modal-backdrop" onClick={() => setShowDishModal(false)}>
+          <div className="modal-card" style={{ maxWidth: 620 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>
@@ -2222,8 +2222,8 @@ alter publication supabase_realtime add table orders;`;
 
       {/* MODAL 3: ADD CATEGORY */}
       {showAddCatModal && (
-        <div className="modal-backdrop">
-          <div className="modal-card">
+        <div className="modal-backdrop" onClick={() => setShowAddCatModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
               <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>Add Menu Category</h3>
               <button onClick={() => setShowAddCatModal(false)} className="btn btn-ghost btn-sm" style={{ padding: 6 }}>
@@ -2267,8 +2267,8 @@ alter publication supabase_realtime add table orders;`;
 
       {/* MODAL 4: GENERATE QR */}
       {showQrModal && (
-        <div className="modal-backdrop">
-          <div className="modal-card">
+        <div className="modal-backdrop" onClick={() => setShowQrModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
               <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>Generate Table QR Code</h3>
               <button onClick={() => setShowQrModal(false)} className="btn btn-ghost btn-sm" style={{ padding: 6 }}>
