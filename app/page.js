@@ -465,34 +465,49 @@ export default function Menu() {
                   margin: '18px 0 10px',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255, 255, 255, 0.06)', padding: '4px 8px', borderRadius: 14, border: '1px solid var(--bd)' }}>
                   <button
                     type="button"
                     className="btn x"
-                    style={{ width: 40, height: 40, padding: 0 }}
+                    style={{ width: 36, height: 36, padding: 0, fontSize: '1.25rem', fontWeight: 700, borderRadius: 10 }}
                     onClick={() => setModalQty(Math.max(1, modalQty - 1))}
                   >
-                    -
+                    −
                   </button>
-                  <b style={{ fontSize: '1.2rem', minWidth: 26, textAlign: 'center' }}>
+                  <b style={{ fontSize: '1.2rem', minWidth: 28, textAlign: 'center', color: 'var(--tx)' }}>
                     {modalQty}
                   </b>
                   <button
                     type="button"
                     className="btn x"
-                    style={{ width: 40, height: 40, padding: 0 }}
+                    style={{ width: 36, height: 36, padding: 0, fontSize: '1.25rem', fontWeight: 700, borderRadius: 10 }}
                     onClick={() => setModalQty(modalQty + 1)}
                   >
                     +
                   </button>
                 </div>
 
-                <button className="btn" style={{ flex: 1 }} onClick={addToCartFromModal}>
+                <button
+                  className="btn btn-primary"
+                  style={{
+                    flex: 1,
+                    padding: '12px 18px',
+                    fontSize: '0.96rem',
+                    fontWeight: 700,
+                    borderRadius: 14,
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
+                  }}
+                  onClick={addToCartFromModal}
+                >
                   {L.addToOrder} • {(Number(open.price) * modalQty).toLocaleString()} {L.cur}
                 </button>
               </div>
 
-              <button className="btn x" style={{ width: '100%', marginTop: 8 }} onClick={() => setOpen(null)}>
+              <button
+                className="btn x"
+                style={{ width: '100%', marginTop: 8, padding: '10px', borderRadius: 12, fontSize: '0.9rem' }}
+                onClick={() => setOpen(null)}
+              >
                 {L.close}
               </button>
             </div>
@@ -769,8 +784,8 @@ export default function Menu() {
                 {/* Submit button */}
                 <button
                   type="submit"
-                  className="btn"
-                  style={{ width: '100%', marginTop: 12, padding: '13px' }}
+                  className="btn btn-primary"
+                  style={{ width: '100%', marginTop: 12, padding: '13px', borderRadius: 14, fontSize: '1rem', fontWeight: 700 }}
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? L.submitting : `${L.submitOrder} • ${cartTotal.toLocaleString()} ${L.cur}`}

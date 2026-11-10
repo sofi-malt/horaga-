@@ -111,14 +111,16 @@ img {
   padding: 9px 18px;
   border-radius: var(--r-md);
   font-size: 0.88rem;
-  font-weight: 600;
+  font-weight: 700;
   border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.16s ease;
   user-select: none;
+  background: var(--blue-600);
+  color: #ffffff;
 }
 .btn:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.08);
   transform: translateY(-1px);
 }
 .btn:active {
@@ -129,6 +131,80 @@ img {
   cursor: not-allowed;
   transform: none;
   filter: none;
+}
+
+/* Button Variants & Modifiers */
+.btn.o {
+  background: var(--o, #f59e0b) !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  border: none !important;
+}
+.btn.o:hover {
+  background: #d97706 !important;
+  color: #ffffff !important;
+}
+
+.btn.b {
+  background: var(--blue-600, #2563eb) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border: none !important;
+}
+.btn.b:hover {
+  background: #1d4ed8 !important;
+}
+
+.btn.p {
+  background: var(--purple-600, #7c3aed) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border: none !important;
+}
+
+.btn.danger {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border: none !important;
+}
+
+.btn.x {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+.btn.x:hover {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .btn.x {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+[data-theme="light"] .btn.x:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.btn.sm {
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  border-radius: var(--r-sm);
+}
+
+.it .btn.sm.o {
+  border-radius: 999px;
+  padding: 5px 14px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+}
+.it .btn.sm.o:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
 }
 
 .btn-primary {
