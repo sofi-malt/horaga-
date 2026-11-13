@@ -50,7 +50,20 @@ export default function Menu() {
   const [activeOrder, setActiveOrder] = useState(null);
   const [showOrderTracker, setShowOrderTracker] = useState(false);
 
+  // Hotel Location & Directions Map Modal
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [addressCopied, setAddressCopied] = useState(false);
+
   const L = getDictionary(lang);
+
+  const copyAddress = (addr) => {
+    if (!addr) return;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(addr);
+      setAddressCopied(true);
+      setTimeout(() => setAddressCopied(false), 2500);
+    }
+  };
 
   // Initialize
   useEffect(() => {
@@ -325,6 +338,12 @@ export default function Menu() {
     'website',
   ].some((k) => st[k]);
 
+  const hotelAddress = st.address?.trim() || 'Bole Medhanialem, Camerun St, Addis Ababa, Ethiopia';
+  const hotelLocationQuery = st.address?.trim() || 'Bole Medhanialem Addis Ababa Ethiopia';
+  const googleDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(hotelLocationQuery)}`;
+  const googleMapsPinUrl = st.map_url?.trim() || `https://maps.google.com/?q=${encodeURIComponent(hotelLocationQuery)}`;
+  const embedMapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(hotelLocationQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+
   return (
     <main className="wrap">
       {/* Header */}
@@ -333,9 +352,9 @@ export default function Menu() {
       </div>
       <p className="tagline">{t(st, 'tagline') || L.tagline}</p>
 
-      {/* Bar: Table tag, Active order pill, and Lang switch */}
+      {/* Bar: Table tag, Active order pill, Location/Map button, and Lang switch */}
       <div className="bar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           {table ? (
             <span className="tag">
               {L.table} {table}
@@ -350,6 +369,15 @@ export default function Menu() {
               🔔 {L.myOrder} ({activeOrder.order_number})
             </button>
           )}
+          <button
+            type="button"
+            className="btn sm x"
+            style={{ fontSize: '.78rem', padding: '3px 10px', gap: 4, borderRadius: 999 }}
+            onClick={() => setShowMapModal(true)}
+            title={L.hotelLocation}
+          >
+            📍 {L.viewHotelMap}
+          </button>
         </div>
 
         <span className="lang">
@@ -410,26 +438,99 @@ export default function Menu() {
         </section>
       ))}
 
-      {/* Footer Info & Hypermedia Social Links */}
-      {hasInfo && (
-        <footer className="info" style={{ textAlign: 'center' }}>
-          {st.hours && (
-            <div style={{ marginBottom: 12 }}>
-              <b style={{ color: 'var(--tx)', display: 'block', fontSize: '.95rem' }}>{L.hours}</b>
-              <div style={{ whiteSpace: 'pre-line', fontSize: '.9rem', color: 'var(--mu)' }}>{st.hours}</div>
+      {/* Hotel Location, Interactive Map & Directions Section */}
+      <section style={{ marginTop: 36, borderTop: '1px solid var(--bd)', paddingTop: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: '1.3rem' }}>📍</span>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--tx)', fontWeight: 800 }}>{L.hotelLocation}</h2>
+              <span style={{ fontSize: '.8rem', color: 'var(--mu)' }}>
+                {st.hours || (lang === 'am' ? 'በየቀኑ ክፍት ነው' : 'Open Daily')}
+              </span>
             </div>
-          )}
-          {st.address && (
-            <div style={{ marginBottom: 14 }}>
-              <b style={{ color: 'var(--tx)', display: 'block', fontSize: '.95rem' }}>{L.find}</b>
-              <div style={{ fontSize: '.9rem', color: 'var(--mu)' }}>{st.address}</div>
-            </div>
-          )}
+          </div>
+          <button
+            type="button"
+            onClick={() => copyAddress(hotelAddress)}
+            className="btn x sm"
+            style={{ fontSize: '.8rem', borderRadius: 999 }}
+          >
+            📋 {addressCopied ? L.addressCopied : L.copyAddress}
+          </button>
+        </div>
 
-          {/* Hypermedia Social and Contact Icon Buttons */}
-          <SocialMediaBar settings={st} lang={lang} />
-        </footer>
-      )}
+        {/* Embedded Interactive Map Card */}
+        <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--bd)', marginBottom: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.12)' }}>
+          <iframe
+            title="Hotel Location Map"
+            src={embedMapUrl}
+            width="100%"
+            height="260"
+            style={{ border: 0, display: 'block' }}
+            allowFullScreen=""
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </div>
+
+        {/* Hotel Details & Quick Directions Controls */}
+        <div style={{ background: 'var(--card)', border: '1px solid var(--bd)', borderRadius: 16, padding: '16px', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <span style={{ fontSize: '.75rem', fontWeight: 700, color: 'var(--o)', textTransform: 'uppercase', letterSpacing: '.4px' }}>
+                {L.hotelAddressTitle}
+              </span>
+              <p style={{ margin: '4px 0 0', color: 'var(--tx)', fontSize: '.92rem', fontWeight: 600 }}>
+                {hotelAddress}
+              </p>
+            </div>
+            {st.hours && (
+              <div>
+                <span style={{ fontSize: '.75rem', fontWeight: 700, color: 'var(--mu)', textTransform: 'uppercase', letterSpacing: '.4px' }}>
+                  {L.hours}
+                </span>
+                <p style={{ margin: '4px 0 0', color: 'var(--mu)', fontSize: '.85rem' }}>
+                  {st.hours}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
+            <a
+              href={googleDirectionsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-primary"
+              style={{ textDecoration: 'none', padding: '10px 14px', borderRadius: 12, fontSize: '.88rem', fontWeight: 700, textAlign: 'center' }}
+            >
+              🚗 {L.getDirections}
+            </a>
+            <a
+              href={googleMapsPinUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="btn x"
+              style={{ textDecoration: 'none', padding: '10px 14px', borderRadius: 12, fontSize: '.88rem', textAlign: 'center' }}
+            >
+              🗺️ {L.openInGoogleMaps}
+            </a>
+            {st.phone && (
+              <a
+                href={`tel:${st.phone.replace(/[^+\d]/g, '')}`}
+                className="btn x"
+                style={{ textDecoration: 'none', padding: '10px 14px', borderRadius: 12, fontSize: '.88rem', textAlign: 'center' }}
+              >
+                📞 {L.social_phone}
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* Hypermedia Social and Contact Icon Buttons */}
+        <SocialMediaBar settings={st} lang={lang} />
+      </section>
 
       {/* Dish Customization & Add-to-Cart Modal */}
       {open && (
@@ -1018,6 +1119,100 @@ export default function Menu() {
                     {lang === 'am' ? 'አዲስ ትዕዛዝ ጀምር' : 'Place New Order'}
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hotel Map & Turn-by-Turn Directions Modal */}
+      {showMapModal && (
+        <div className="mod" onClick={() => setShowMapModal(false)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '92vh' }}>
+            <div className="in">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '1.4rem' }}>📍</span>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--tx)' }}>{L.hotelLocation}</h3>
+                    <span style={{ fontSize: '.78rem', color: 'var(--mu)' }}>
+                      {st.hours || (lang === 'am' ? 'በየቀኑ ክፍት ነው' : 'Open Daily')}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn x sm"
+                  style={{ width: 32, height: 32, padding: 0, borderRadius: 999 }}
+                  onClick={() => setShowMapModal(false)}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Embedded Interactive Google Map */}
+              <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--bd)', marginBottom: 14, boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
+                <iframe
+                  title="Hotel Location Map Modal"
+                  src={embedMapUrl}
+                  width="100%"
+                  height="260"
+                  style={{ border: 0, display: 'block' }}
+                  allowFullScreen=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+
+              {/* Hotel Address Card */}
+              <div style={{ background: 'var(--card-subtle)', border: '1px solid var(--bd)', borderRadius: 14, padding: '12px 16px', marginBottom: 16 }}>
+                <span style={{ fontSize: '.75rem', fontWeight: 700, color: 'var(--o)', textTransform: 'uppercase', letterSpacing: '.4px' }}>
+                  {L.hotelAddressTitle}
+                </span>
+                <p style={{ margin: '4px 0 10px', fontSize: '.9rem', color: 'var(--tx)', fontWeight: 600, lineHeight: 1.4 }}>
+                  {hotelAddress}
+                </p>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => copyAddress(hotelAddress)}
+                    className="btn x sm"
+                    style={{ fontSize: '.8rem', padding: '5px 12px', borderRadius: 8 }}
+                  >
+                    📋 {addressCopied ? L.addressCopied : L.copyAddress}
+                  </button>
+                  {st.phone && (
+                    <a
+                      href={`tel:${st.phone.replace(/[^+\d]/g, '')}`}
+                      className="btn x sm"
+                      style={{ fontSize: '.8rem', padding: '5px 12px', borderRadius: 8, textDecoration: 'none' }}
+                    >
+                      📞 {L.social_phone}
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Directions Buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <a
+                  href={googleDirectionsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '12px', borderRadius: 12, textDecoration: 'none', fontWeight: 700, textAlign: 'center' }}
+                >
+                  🚗 {L.getDirections}
+                </a>
+                <a
+                  href={googleMapsPinUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn x"
+                  style={{ width: '100%', padding: '10px', borderRadius: 12, textDecoration: 'none', fontSize: '.88rem', textAlign: 'center' }}
+                >
+                  🗺️ {L.openInGoogleMaps}
+                </a>
               </div>
             </div>
           </div>

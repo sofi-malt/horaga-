@@ -1582,6 +1582,28 @@ alter publication supabase_realtime add table orders;`;
               <form onSubmit={saveInfo} className="card" style={{ padding: 28 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
                   <div>
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Hotel Physical Address / Location</label>
+                    <input placeholder="e.g. Bole Medhanialem, Addis Ababa, Ethiopia" value={st.address || ''} onChange={(e) => setSt({ ...st, address: e.target.value })} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Operating Hours</label>
+                    <input placeholder="e.g. Mon – Sun: 7:00 AM – 11:00 PM" value={st.hours || ''} onChange={(e) => setSt({ ...st, hours: e.target.value })} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
+                  <div>
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Google Maps Link / Coordinates</label>
+                    <input placeholder="https://maps.google.com/?q=... or Bole Medhanialem" value={st.map_url || ''} onChange={(e) => setSt({ ...st, map_url: e.target.value })} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Official Website</label>
+                    <input placeholder="https://royalhotel.com" value={st.website || ''} onChange={(e) => setSt({ ...st, website: e.target.value })} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
+                  <div>
                     <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Phone Number</label>
                     <input placeholder="0911223344" value={st.phone || ''} onChange={(e) => setSt({ ...st, phone: e.target.value })} />
                   </div>
@@ -1604,12 +1626,12 @@ alter publication supabase_realtime add table orders;`;
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
                   <div>
-                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Google Maps Link</label>
-                    <input placeholder="https://maps.google.com/..." value={st.map_url || ''} onChange={(e) => setSt({ ...st, map_url: e.target.value })} />
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Tagline (English)</label>
+                    <input placeholder="Exquisite Dining & Royal Hospitality" value={st.tagline || ''} onChange={(e) => setSt({ ...st, tagline: e.target.value })} />
                   </div>
                   <div>
-                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Official Website</label>
-                    <input placeholder="https://royalhotel.com" value={st.website || ''} onChange={(e) => setSt({ ...st, website: e.target.value })} />
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: 5 }}>Tagline (Amharic)</label>
+                    <input placeholder="ምርጥ መስተንግዶ እና ጣፋጭ ምግቦች" value={st.tagline_am || ''} onChange={(e) => setSt({ ...st, tagline_am: e.target.value })} />
                   </div>
                 </div>
 
